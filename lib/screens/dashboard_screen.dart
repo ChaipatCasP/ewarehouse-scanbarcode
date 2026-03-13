@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'po_list_screen.dart';
 import 'scan_qr_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final ApiService apiService;
@@ -49,11 +50,89 @@ class DashboardScreen extends StatelessWidget {
                     icon: const Icon(Icons.notifications_outlined,
                         color: Colors.grey),
                   ),
-                  const CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Color(0xFFE8EDF2),
-                    child: Icon(Icons.account_circle,
-                        color: AppTheme.primary, size: 30),
+                  PopupMenuButton<String>(
+                    offset: const Offset(0, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Color(0xFFE8EDF2),
+                      child: Icon(Icons.account_circle,
+                          color: AppTheme.primary, size: 30),
+                    ),
+                    onSelected: (value) {
+                      if (value == 'logout') {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Row(
+                              children: [
+                                Icon(Icons.logout, color: Colors.redAccent),
+                                SizedBox(width: 8),
+                                Text('Logout'),
+                              ],
+                            ),
+                            content:
+                                const Text('Are you sure you want to logout?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                        builder: (_) => const LoginScreen()),
+                                    (route) => false,
+                                  );
+                                },
+                                child: const Text('Logout'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_outline, size: 20),
+                            SizedBox(width: 10),
+                            Text('Profile'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, size: 20, color: Colors.redAccent),
+                            SizedBox(width: 10),
+                            Text('Logout',
+                                style: TextStyle(color: Colors.redAccent)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

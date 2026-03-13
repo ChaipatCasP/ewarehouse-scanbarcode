@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 
@@ -13,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController(text: 'DEMO');
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   final _apiService = ApiService();
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -29,17 +31,23 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _apiService.login(username, password);
+      final result = await _authService.login(username, password);
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DashboardScreen(apiService: _apiService),
-        ),
-      );
+      if (result.isSuccess) {
+        // ส่ง TOKEN_ID ไปใช้กับ API อื่นๆ
+        _apiService.setAuthToken(result.tokenId);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardScreen(apiService: _apiService),
+          ),
+        );
+      } else {
+        _showSnackBar(result.message.isNotEmpty ? result.message : 'Login failed');
+      }
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Login failed: $e');
+      _showSnackBar(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
