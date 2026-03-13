@@ -1,29 +1,55 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'auth_service.dart';
 
 class ApiService {
-  // TODO: Replace with your actual API base URL
-  static const String baseUrl = 'https://api.example.com';
+  static const String baseUrl =
+      'https://apils-ewarehouse.jagota.com';
 
   final http.Client _client;
+  final AuthService _authService;
 
-  ApiService({http.Client? client}) : _client = client ?? http.Client();
+  ApiService({http.Client? client, AuthService? authService})
+      : _client = client ?? http.Client(),
+        _authService = authService ?? AuthService();
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
 
-  String? _authToken;
+  /// TOKEN_ID จาก GetUserLogin (เก็บหลัง login สำเร็จ)
+  String? _userToken;
+  String _username = '';
+  String _company  = 'JB';
 
   void setAuthToken(String token) {
-    _authToken = token;
+    _userToken = token;
+  }
+
+  /// เก็บข้อมูล user หลัง login สำเร็จ
+  void setUserInfo({required String username, String company = 'JB'}) {
+    _username = username;
+    _company  = company;
+  }
+
+  String get username => _username;
+  String get company  => _company;
+
+  /// สร้าง headers สำหรับ API ที่ต้องการ JWT + x-user-token
+  Future<Map<String, String>> _buildProtectedHeaders() async {
+    final jwt = await _authService.getJwtToken();
+    return {
+      'Authorization': 'Bearer $jwt',
+      if (_userToken != null) 'x-user-token': _userToken!,
+    };
   }
 
   Map<String, String> get _authHeaders => {
         ..._headers,
-        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+        if (_userToken != null) 'Authorization': 'Bearer $_userToken',
       };
 
   /// Login with username and password
@@ -244,6 +270,92 @@ class ApiService {
       expDate: expDate,
       weight: weight,
     );
+  }
+
+  // ── GetRcvPlanDtl ──────────────────────────────────────────────────────────
+
+  /// GET /Apip/WsEwarehouse/GetRcvPlanDtl
+  ///
+  /// ดึงรายละเอียด Receive Plan
+  ///
+  /// Parameters:
+  /// - [company]  : รหัสบริษัท เช่น "JB"
+  /// - [user]     : username ผู้ใช้
+  /// - [key]      : keyword ค้นหา (optional)
+  /// - [type]     : ประเภท เช่น "PO"
+  /// - [date]     : วันที่ format YYYYMMDD เช่น "20210203"
+  /// - [page]     : หน้าที่ต้องการ (เริ่มจาก 1)
+  Future<RcvPlanDtlResult> getRcvPlanDtl({
+    required String company,
+    required String user,
+    String key = '',
+    String type = 'PO',
+    required String date,
+    int page = 1,
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GetRcvPlanDtl'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']  = company;
+    request.fields['P_USER'] = user;
+    request.fields['P_KEY']  = key;
+    request.fields['P_TYPE'] = type;
+    request.fields['P_DATE'] = date;
+    request.fields['P_PAGE'] = page.toString();
+
+    // ── 🔍 Debug: แสดง request ที่ส่งออกไป ──────────────────────────────
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GetRcvPlanDtl');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('│ Method : ${request.method}');
+    debugPrint('├── Headers ──────────────────────────────────');
+    headers.forEach((k, v) {
+      // ซ่อนบางส่วนของ token เพื่อความปลอดภัย
+      final display = v.length > 20 ? '${v.substring(0, 20)}...[truncated]' : v;
+      debugPrint('│ $k: $display');
+    });
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+    // ─────────────────────────────────────────────────────────────────────
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    // ── 🔍 Debug: แสดง response ที่ได้รับ ──────────────────────────────
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GetRcvPlanDtl');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+    // ─────────────────────────────────────────────────────────────────────
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      // jwt == 0 หรือ flag != 1 → ถือว่า error
+      if (data['jwt'] == 0) {
+        throw ApiException(
+            data['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (data['flag'] != null && data['flag'].toString() != '1') {
+        final results = data['result'] as List<dynamic>?;
+        final msg = results != null && results.isNotEmpty
+            ? (results.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : data['message'] as String? ?? '';
+        throw ApiException(
+            msg.isNotEmpty ? msg : 'GetRcvPlanDtl failed (flag≠1)');
+      }
+
+      return RcvPlanDtlResult.fromJson(data, page);
+    } else {
+      throw ApiException(
+          'GetRcvPlanDtl HTTP error: ${response.statusCode}');
+    }
   }
 }
 

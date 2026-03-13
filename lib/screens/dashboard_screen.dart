@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'po_list_screen.dart';
 import 'scan_qr_screen.dart';
 import 'login_screen.dart';
+import 'rcv_plan_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final ApiService apiService;
@@ -222,7 +223,7 @@ class DashboardScreen extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  ScanQRScreen(apiService: apiService),
+                                  RcvPlanListScreen(apiService: apiService),
                             ),
                           ),
                         ),

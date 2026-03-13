@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  static const String _tokenBaseUrl = 'https://apils-ewarehouse-staging.jagota.com';
-  static const String _apiBaseUrl =   'https://apils-ewarehouse-staging.jagota.com';
+  static const String _tokenBaseUrl = 'https://apils-ewarehouse.jagota.com';
+  // static const String _tokenBaseUrl = 'https://apils-ewarehouse-staging.jagota.com';
+  static const String _apiBaseUrl =   'https://apils-ewarehouse.jagota.com';
 
   // TODO: Replace with your actual private key
-  static const String _tokenPrivateKey = 'JMblGuueFQmXEpkhswaXMKQyQPHevZgnRdhTvRkQfBKCXaQmyoVxXjkabjPBUbSW';
+  // static const String _tokenPrivateKey = 'JMblGuueFQmXEpkhswaXMKQyQPHevZgnRdhTvRkQfBKCXaQmyoVxXjkabjPBUbSW';
+  static const String _tokenPrivateKey = '5OgLwlEFdme7nlc31V7YgLN4SZgfxLcqTTgrsc8QKSVDl7pKSVLJUZEdZNTBmatf';
 
   final http.Client _client;
 

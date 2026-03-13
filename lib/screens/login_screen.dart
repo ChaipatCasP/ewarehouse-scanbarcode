@@ -36,6 +36,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.isSuccess) {
         // ส่ง TOKEN_ID ไปใช้กับ API อื่นๆ
         _apiService.setAuthToken(result.tokenId);
+        _apiService.setUserInfo(
+          username: username,
+          company: result.company.isNotEmpty ? result.company : 'JB',
+        );
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
