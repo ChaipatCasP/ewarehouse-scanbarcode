@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'pur_product_screen.dart';
 
 class RcvPlanListScreen extends StatefulWidget {
   final ApiService apiService;
@@ -306,8 +307,10 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
                             child: ListView.builder(
                               padding: const EdgeInsets.all(16),
                               itemCount: filtered.length,
-                              itemBuilder: (context, i) =>
-                                  _RcvPlanCard(item: filtered[i]),
+                              itemBuilder: (context, i) => _RcvPlanCard(
+                                item: filtered[i],
+                                apiService: widget.apiService,
+                              ),
                             ),
                           ),
           ),
@@ -321,195 +324,197 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
 
 class _RcvPlanCard extends StatelessWidget {
   final RcvPlanDtlItem item;
-  const _RcvPlanCard({required this.item});
+  final ApiService apiService;
+  const _RcvPlanCard({required this.item, required this.apiService});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PurProductScreen(
+            apiService: apiService,
+            plan: item,
           ),
-        ],
+        ),
       ),
-      child: Column(
-        children: [
-          // ── Header strip ────────────────────────────────────────────
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.05),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
-              border: const Border(
-                  bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Row(
-              children: [
-                // PO Number
-                Text(
-                  item.fullPoNo,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primary,
-                    letterSpacing: 0.5,
+          ],
+        ),
+        child: Column(
+          children: [
+            // ── Header strip ──────────────────────────────────────────
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.05),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(14)),
+                border: const Border(
+                    bottom: BorderSide(color: Color(0xFFE2E8F0))),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    item.fullPoNo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primary,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                // Type badge
-                _Badge(
-                  label: item.transactionType,
-                  color: const Color(0xFF2563EB),
-                ),
-                const Spacer(),
-                // Hold badge
-                if (item.isHold)
-                  const _Badge(label: 'HOLD', color: Colors.red),
-                // Status badge
-                _Badge(
-                  label: item.isActive ? 'Active' : item.status,
-                  color: item.isActive
-                      ? const Color(0xFF16A34A)
-                      : Colors.grey,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  _Badge(
+                    label: item.transactionType,
+                    color: const Color(0xFF2563EB),
+                  ),
+                  const Spacer(),
+                  if (item.isHold)
+                    const _Badge(label: 'HOLD', color: Colors.red),
+                  _Badge(
+                    label: item.isActive ? 'Active' : item.status,
+                    color: item.isActive
+                        ? const Color(0xFF16A34A)
+                        : Colors.grey,
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right,
+                      size: 18, color: Colors.grey.shade400),
+                ],
+              ),
             ),
-          ),
 
-          // ── Body ─────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Supplier
-                _InfoRow(
-                  icon: Icons.business_outlined,
-                  label: 'Supplier',
-                  value: item.supName,
-                  subValue: item.supCountry.isNotEmpty
-                      ? '🌍 ${item.supCountry}'
-                      : null,
-                ),
-                const SizedBox(height: 8),
-
-                // Storage / Keep
-                _InfoRow(
-                  icon: Icons.thermostat_outlined,
-                  label: 'Storage',
-                  value: item.keepName,
-                  valueColor: _keepColor(item.keepCode),
-                ),
-                const SizedBox(height: 8),
-
-                // Delivery date
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InfoRow(
-                        icon: Icons.event_outlined,
-                        label: 'Delivery',
-                        value: _formatDate(item.deliveryDate),
-                      ),
-                    ),
-                    Expanded(
-                      child: _InfoRow(
-                        icon: Icons.access_time_outlined,
-                        label: 'ETA',
-                        value: item.eta.isNotEmpty ? item.eta : '-',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Container / Shipment
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InfoRow(
-                        icon: Icons.inventory_2_outlined,
-                        label: 'Container',
-                        value: item.containerNo.isNotEmpty
-                            ? item.containerNo
-                            : '-',
-                      ),
-                    ),
-                    Expanded(
-                      child: _InfoRow(
-                        icon: Icons.flight_takeoff_outlined,
-                        label: 'Shipment',
-                        value: item.shipmentName1.isNotEmpty
-                            ? item.shipmentName1
-                            : '-',
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Shipper (optional)
-                if (item.shipperSupName.isNotEmpty) ...[
+            // ── Body ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoRow(
+                    icon: Icons.business_outlined,
+                    label: 'Supplier',
+                    value: item.supName,
+                    subValue: item.supCountry.isNotEmpty
+                        ? '🌍 ${item.supCountry}'
+                        : null,
+                  ),
                   const SizedBox(height: 8),
                   _InfoRow(
-                    icon: Icons.local_shipping_outlined,
-                    label: 'Shipper',
-                    value: item.shipperSupName,
+                    icon: Icons.thermostat_outlined,
+                    label: 'Storage',
+                    value: item.keepName,
+                    valueColor: _keepColor(item.keepCode),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.event_outlined,
+                          label: 'Delivery',
+                          value: _formatDate(item.deliveryDate),
+                        ),
+                      ),
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.access_time_outlined,
+                          label: 'ETA',
+                          value: item.eta.isNotEmpty ? item.eta : '-',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.inventory_2_outlined,
+                          label: 'Container',
+                          value: item.containerNo.isNotEmpty
+                              ? item.containerNo
+                              : '-',
+                        ),
+                      ),
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.flight_takeoff_outlined,
+                          label: 'Shipment',
+                          value: item.shipmentName1.isNotEmpty
+                              ? item.shipmentName1
+                              : '-',
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (item.shipperSupName.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _InfoRow(
+                      icon: Icons.local_shipping_outlined,
+                      label: 'Shipper',
+                      value: item.shipperSupName,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Footer ────────────────────────────────────────────────
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                border:
+                    Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(14)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.low_priority,
+                      size: 14, color: Colors.grey.shade400),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Priority ${item.priority}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(Icons.format_list_numbered,
+                      size: 14, color: Colors.grey.shade400),
+                  const SizedBox(width: 4),
+                  Text(
+                    'SEQ ${item.seq}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                  const Spacer(),
+                  Text(
+                    item.wareCode.isNotEmpty && item.wareCode != '-'
+                        ? item.wareCode
+                        : '',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.grey.shade400),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-
-          // ── Footer: priority + SEQ ─────────────────────────────────
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: const BoxDecoration(
-              border:
-                  Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-              borderRadius:
-                  BorderRadius.vertical(bottom: Radius.circular(14)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.low_priority,
-                    size: 14, color: Colors.grey.shade400),
-                const SizedBox(width: 4),
-                Text(
-                  'Priority ${item.priority}',
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade500),
-                ),
-                const SizedBox(width: 12),
-                Icon(Icons.format_list_numbered,
-                    size: 14, color: Colors.grey.shade400),
-                const SizedBox(width: 4),
-                Text(
-                  'SEQ ${item.seq}',
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade500),
-                ),
-                const Spacer(),
-                Text(
-                  item.wareCode.isNotEmpty && item.wareCode != '-'
-                      ? item.wareCode
-                      : '',
-                  style: TextStyle(
-                      fontSize: 11, color: Colors.grey.shade400),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

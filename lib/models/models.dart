@@ -330,7 +330,7 @@ class RcvPlanDtlItem {
 }
 
 class RcvPlanDtlResult {
-  final int records;          // records จาก API (จำนวน row ที่ได้)
+  final int records;
   final int currentPage;
   final List<RcvPlanDtlItem> items;
 
@@ -347,6 +347,156 @@ class RcvPlanDtlResult {
       currentPage: page,
       items:       rawItems
           .map((e) => RcvPlanDtlItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+/// ── GetPurProduct ───────────────────────────────────────────────────────────
+
+class PurProductItem {
+  // ── Identity ─────────────────────────────────────────────────────────────
+  final String company;           // COMPANY
+  final String transactionType;   // TRANSACTION_TYPE
+  final String poBookNo;          // PO_BOOK_NO
+  final String poNo;              // PO_NO
+  final String poLine;            // PO_LINE / LINE_NO
+
+  // ── Product ───────────────────────────────────────────────────────────────
+  final String matCode;           // MAT_CODE
+  final String matDesc;           // MAT_DESC / PRODUCT_NAME
+  final String matDesc2;          // MAT_DESC2
+  final String barcode;           // BARCODE
+  final String brand;             // BRAND
+
+  // ── Quantity ─────────────────────────────────────────────────────────────
+  final double poQty;             // PO_QTY / ORDER_QTY
+  final double rcvQty;            // RCV_QTY / RECEIVE_QTY
+  final double pendingQty;        // PENDING_QTY
+  final String uom;               // UOM
+
+  // ── Price ─────────────────────────────────────────────────────────────────
+  final double unitPrice;         // UNIT_PRICE / PRICE
+  final double amount;            // AMOUNT
+  final String currency;          // CURRENCY
+
+  // ── Storage / Lot ─────────────────────────────────────────────────────────
+  final String keepCode;          // KEEP_CODE
+  final String keepName;          // KEEP_NAME
+  final String lotNo;             // LOT_NO
+  final String mfgDate;           // MFG_DATE
+  final String expDate;           // EXP_DATE
+
+  // ── Status ────────────────────────────────────────────────────────────────
+  final String status;            // STATUS
+  final String remark;            // REMARK
+
+  /// Raw JSON ครบทุก field
+  final Map<String, dynamic> raw;
+
+  PurProductItem({
+    required this.company,
+    required this.transactionType,
+    required this.poBookNo,
+    required this.poNo,
+    required this.poLine,
+    required this.matCode,
+    required this.matDesc,
+    required this.matDesc2,
+    required this.barcode,
+    required this.brand,
+    required this.poQty,
+    required this.rcvQty,
+    required this.pendingQty,
+    required this.uom,
+    required this.unitPrice,
+    required this.amount,
+    required this.currency,
+    required this.keepCode,
+    required this.keepName,
+    required this.lotNo,
+    required this.mfgDate,
+    required this.expDate,
+    required this.status,
+    required this.remark,
+    required this.raw,
+  });
+
+  static String _s(Map<String, dynamic> j, List<String> keys) {
+    for (final k in keys) {
+      final v = j[k];
+      if (v != null) return v.toString();
+    }
+    return '';
+  }
+
+  static double _d(Map<String, dynamic> j, List<String> keys) {
+    for (final k in keys) {
+      final v = j[k];
+      if (v != null) return double.tryParse(v.toString()) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  factory PurProductItem.fromJson(Map<String, dynamic> json) {
+    return PurProductItem(
+      company:         _s(json, ['COMPANY']),
+      transactionType: _s(json, ['TRANSACTION_TYPE', 'TRANS_TYPE']),
+      poBookNo:        _s(json, ['PO_BOOK_NO', 'BOOK_NO']),
+      poNo:            _s(json, ['PO_NO']),
+      poLine:          _s(json, ['PO_LINE', 'LINE_NO', 'SEQ']),
+      matCode:         _s(json, ['MAT_CODE', 'PRODUCT_CODE', 'ITEM_CODE']),
+      matDesc:         _s(json, ['MAT_DESC', 'PRODUCT_NAME', 'ITEM_DESC']),
+      matDesc2:        _s(json, ['MAT_DESC2', 'PRODUCT_NAME2']),
+      barcode:         _s(json, ['BARCODE', 'BAR_CODE']),
+      brand:           _s(json, ['BRAND', 'BRAND_NAME']),
+      poQty:           _d(json, ['PO_QTY', 'ORDER_QTY', 'QTY']),
+      rcvQty:          _d(json, ['RCV_QTY', 'RECEIVE_QTY', 'RECEIVED_QTY']),
+      pendingQty:      _d(json, ['PENDING_QTY', 'REMAIN_QTY']),
+      uom:             _s(json, ['UOM', 'UNIT']),
+      unitPrice:       _d(json, ['UNIT_PRICE', 'PRICE']),
+      amount:          _d(json, ['AMOUNT', 'TOTAL_AMOUNT']),
+      currency:        _s(json, ['CURRENCY', 'CURR']),
+      keepCode:        _s(json, ['KEEP_CODE']),
+      keepName:        _s(json, ['KEEP_NAME', 'STORAGE_NAME']),
+      lotNo:           _s(json, ['LOT_NO', 'LOT']),
+      mfgDate:         _s(json, ['MFG_DATE', 'MANUFACTURE_DATE']),
+      expDate:         _s(json, ['EXP_DATE', 'EXPIRE_DATE', 'EXPIRY_DATE']),
+      status:          _s(json, ['STATUS']),
+      remark:          _s(json, ['REMARK', 'REMARK1']),
+      raw:             json,
+    );
+  }
+
+  /// PO เลขเต็ม เช่น "PE68/1407"
+  String get fullPoNo =>
+      poBookNo.isNotEmpty ? '$poBookNo/$poNo' : poNo;
+
+  /// จำนวนที่ยังค้างรับ
+  double get remainQty =>
+      pendingQty > 0 ? pendingQty : (poQty - rcvQty).clamp(0, double.infinity);
+
+  Map<String, dynamic> toJson() => raw;
+}
+
+class PurProductResult {
+  final int records;
+  final int currentPage;
+  final List<PurProductItem> items;
+
+  PurProductResult({
+    required this.records,
+    required this.currentPage,
+    required this.items,
+  });
+
+  factory PurProductResult.fromJson(Map<String, dynamic> json, int page) {
+    final rawItems = json['result'] as List<dynamic>? ?? [];
+    return PurProductResult(
+      records:     (json['records'] as num?)?.toInt() ?? rawItems.length,
+      currentPage: page,
+      items: rawItems
+          .map((e) => PurProductItem.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }

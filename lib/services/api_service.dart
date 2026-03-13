@@ -357,6 +357,86 @@ class ApiService {
           'GetRcvPlanDtl HTTP error: ${response.statusCode}');
     }
   }
+
+  // ── GetPurProduct ──────────────────────────────────────────────────────────
+
+  /// POST /Apip/WsEwarehouse/GetPurProduct
+  ///
+  /// ดึงรายการสินค้าของ PO ที่เลือก
+  ///
+  /// Parameters:
+  /// - [company]   : รหัสบริษัท เช่น "JB"
+  /// - [user]      : username
+  /// - [type]      : TRANSACTION_TYPE เช่น "PE"
+  /// - [poBookNo]  : PO_BOOK_NO เช่น "PE68"
+  /// - [poNo]      : PO_NO เช่น "1407"
+  /// - [page]      : หน้าที่ต้องการ (เริ่มจาก 1)
+  Future<PurProductResult> getPurProduct({
+    required String company,
+    required String user,
+    required String type,
+    required String poBookNo,
+    required String poNo,
+    int page = 1,
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GetPurProduct'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']      = company;
+    request.fields['P_USER']     = user;
+    request.fields['P_KEY']     = "";
+    request.fields['P_TYPE']     = type;
+    request.fields['P_BOOK']  = poBookNo;
+    request.fields['P_NO']    = poNo;
+    request.fields['P_PAGE']     = page.toString();
+
+    // ── 🔍 Debug ──────────────────────────────────────────────────────────
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GetPurProduct');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('│ Method : ${request.method}');
+    debugPrint('├── Headers ──────────────────────────────────');
+    headers.forEach((k, v) {
+      final display = v.length > 20 ? '${v.substring(0, 20)}...[truncated]' : v;
+      debugPrint('│ $k: $display');
+    });
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+    // ─────────────────────────────────────────────────────────────────────
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GetPurProduct');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['jwt'] == 0) {
+        throw ApiException(data['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (data['flag'] != null && data['flag'].toString() != '1') {
+        final results = data['result'] as List<dynamic>?;
+        final msg = results != null && results.isNotEmpty
+            ? (results.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : data['message'] as String? ?? '';
+        throw ApiException(msg.isNotEmpty ? msg : 'GetPurProduct failed (flag≠1)');
+      }
+
+      return PurProductResult.fromJson(data, page);
+    } else {
+      throw ApiException('GetPurProduct HTTP error: ${response.statusCode}');
+    }
+  }
 }
 
 class ApiException implements Exception {
