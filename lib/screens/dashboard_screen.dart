@@ -173,45 +173,45 @@ class DashboardScreen extends StatelessWidget {
                       mainAxisSpacing: 16,
                       childAspectRatio: 1.2,
                       children: [
-                        _TaskCard(
-                          icon: Icons.public,
-                          iconBgColor: const Color(0xFFEFF6FF),
-                          iconColor: const Color(0xFF2563EB),
-                          title: 'Receive International',
-                          badge: '35',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => POListScreen(
-                                apiService: apiService,
-                                title: 'Receive International',
-                              ),
-                            ),
-                          ),
-                        ),
-                        _TaskCard(
-                          icon: Icons.local_shipping,
-                          iconBgColor: const Color(0xFFF0FDF4),
-                          iconColor: const Color(0xFF16A34A),
-                          title: 'Receive Domestic',
-                          badge: '61',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => POListScreen(
-                                apiService: apiService,
-                                title: 'Receive Domestic',
-                              ),
-                            ),
-                          ),
-                        ),
-                        _TaskCard(
-                          icon: Icons.cloud_upload,
-                          iconBgColor: const Color(0xFFFAF5FF),
-                          iconColor: const Color(0xFF9333EA),
-                          title: 'EDI inbound LPN upload',
-                          onTap: () {},
-                        ),
+                        // _TaskCard(
+                        //   icon: Icons.public,
+                        //   iconBgColor: const Color(0xFFEFF6FF),
+                        //   iconColor: const Color(0xFF2563EB),
+                        //   title: 'Receive International',
+                        //   badge: '35',
+                        //   onTap: () => Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //       builder: (_) => POListScreen(
+                        //         apiService: apiService,
+                        //         title: 'Receive International',
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
+                        // _TaskCard(
+                        //   icon: Icons.local_shipping,
+                        //   iconBgColor: const Color(0xFFF0FDF4),
+                        //   iconColor: const Color(0xFF16A34A),
+                        //   title: 'Receive Domestic',
+                        //   badge: '61',
+                        //   onTap: () => Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //       builder: (_) => POListScreen(
+                        //         apiService: apiService,
+                        //         title: 'Receive Domestic',
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
+                        // _TaskCard(
+                        //   icon: Icons.cloud_upload,
+                        //   iconBgColor: const Color(0xFFFAF5FF),
+                        //   iconColor: const Color(0xFF9333EA),
+                        //   title: 'EDI inbound LPN upload',
+                        //   onTap: () {},
+                        // ),
                         _TaskCard(
                           icon: Icons.qr_code_2,
                           iconBgColor: Colors.white.withValues(alpha: 0.2),
@@ -226,62 +226,62 @@ class DashboardScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        _TaskCard(
-                          icon: Icons.verified_user,
-                          iconBgColor: const Color(0xFFFFFBEB),
-                          iconColor: const Color(0xFFD97706),
-                          title: 'Receive Approval',
-                          onTap: () {},
-                        ),
-                        _TaskCard(
-                          icon: Icons.bar_chart,
-                          iconBgColor: const Color(0xFFF1F5F9),
-                          iconColor: const Color(0xFF475569),
-                          title: 'View Q1',
-                          onTap: () {},
-                        ),
+                        // _TaskCard(
+                        //   icon: Icons.verified_user,
+                        //   iconBgColor: const Color(0xFFFFFBEB),
+                        //   iconColor: const Color(0xFFD97706),
+                        //   title: 'Receive Approval',
+                        //   onTap: () {},
+                        // ),
+                        // _TaskCard(
+                        //   icon: Icons.bar_chart,
+                        //   iconBgColor: const Color(0xFFF1F5F9),
+                        //   iconColor: const Color(0xFF475569),
+                        //   title: 'View Q1',
+                        //   onTap: () {},
+                        // ),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     // Tip Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppTheme.primary.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info_outline,
-                                  color: AppTheme.primary, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Warehouse Tip',
-                                style: TextStyle(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Scan the QR code on the pallet to automatically update the LPN status for domestic arrivals.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   padding: const EdgeInsets.all(16),
+                    //   decoration: BoxDecoration(
+                    //     color: AppTheme.primary.withValues(alpha: 0.05),
+                    //     borderRadius: BorderRadius.circular(12),
+                    //     border: Border.all(
+                    //       color: AppTheme.primary.withValues(alpha: 0.1),
+                    //     ),
+                    //   ),
+                    //   child: Column(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: [
+                    //       Row(
+                    //         children: [
+                    //           Icon(Icons.info_outline,
+                    //               color: AppTheme.primary, size: 18),
+                    //           const SizedBox(width: 8),
+                    //           Text(
+                    //             'Warehouse Tip',
+                    //             style: TextStyle(
+                    //               color: AppTheme.primary,
+                    //               fontWeight: FontWeight.w600,
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //       const SizedBox(height: 8),
+                    //       Text(
+                    //         'Scan the QR code on the pallet to automatically update the LPN status for domestic arrivals.',
+                    //         style: TextStyle(
+                    //           fontSize: 14,
+                    //           color: Colors.grey.shade600,
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
