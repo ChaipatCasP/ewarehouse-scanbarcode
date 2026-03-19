@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 /// Singleton service — Bluetooth thermal label printer (ESC/POS)
@@ -12,6 +13,19 @@ class BtPrinterService {
 
   Future<bool> get isBluetoothEnabled => PrintBluetoothThermal.bluetoothEnabled;
   Future<bool> get isConnected => PrintBluetoothThermal.connectionStatus;
+
+  /// Request BLUETOOTH_CONNECT + BLUETOOTH_SCAN on Android 12+
+  /// Returns true if all necessary permissions are granted.
+  Future<bool> requestPermissions() async {
+    final statuses = await [
+      Permission.bluetoothConnect,
+      Permission.bluetoothScan,
+    ].request();
+    final granted = statuses.values.every(
+        (s) => s == PermissionStatus.granted || s == PermissionStatus.limited);
+    debugPrint('BtPrinter permissions granted: $granted');
+    return granted;
+  }
 
   Future<List<BluetoothInfo>> getPairedDevices() async {
     try {

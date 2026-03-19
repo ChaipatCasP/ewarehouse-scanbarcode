@@ -296,6 +296,20 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   }
 
   Future<void> _showPrinterSelectorSheet() async {
+    // 1. Request runtime BT permissions (Android 12+)
+    final granted = await _btPrinter.requestPermissions();
+    if (!granted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ ไม่ได้รับอนุญาต Bluetooth — กรุณาอนุญาตใน Settings'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    // 2. Check BT is turned on
     final enabled = await _btPrinter.isBluetoothEnabled;
     if (!enabled) {
       if (!mounted) return;
@@ -834,537 +848,526 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadBoxData,
-        color: AppTheme.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // ── Product Info Banner ──────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          // ── Product Info Banner ──────────────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.matDesc.isNotEmpty ? item.matDesc : '-',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                if (item.matDesc2.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(item.matDesc2,
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade500)),
+                ],
+                const SizedBox(height: 10),
+                // Qty summary row
+                _loadingBoxData
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: CircularProgressIndicator(
+                              color: AppTheme.primary, strokeWidth: 2),
+                        ),
+                      )
+                    : _boxDataError != null
+                        ? _InlineError(
+                            message: _boxDataError!, onRetry: _loadBoxData)
+                        : Column(
+                            children: [
+                              // Qty boxes
+                              Row(
+                                children: [
+                                  _QtyTile(
+                                    label: 'PO Qty',
+                                    value: '${_fmtD(totalQty)} ${item.uom}',
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _QtyTile(
+                                    label: 'Scanned',
+                                    value: '${_fmtD(scannedQty)} ${item.uom}',
+                                    color: const Color(0xFF16A34A),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _QtyTile(
+                                    label: 'Pending',
+                                    value:
+                                        '${_fmtD((totalQty - scannedQty).clamp(0, double.infinity))} ${item.uom}',
+                                    color: (totalQty - scannedQty) > 0
+                                        ? const Color(0xFFD97706)
+                                        : Colors.grey,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              // Progress bar
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'สแกนแล้ว ${(pct * 100).toStringAsFixed(1)}%',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500),
+                                      ),
+                                      Text(
+                                        '${_fmtD(scannedQty)} / ${_fmtD(totalQty)}',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade500),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: pct,
+                                      minHeight: 8,
+                                      backgroundColor:
+                                          const Color(0xFFE2E8F0),
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(
+                                        pct >= 1.0
+                                            ? const Color(0xFF16A34A)
+                                            : AppTheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Extra info from TotBox
+                              if (_totBox != null) ...[
+                                const SizedBox(height: 10),
+                                const Divider(height: 1),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: [
+                                    if (_totBox!.accepted.isNotEmpty &&
+                                        _totBox!.accepted != '0')
+                                      _SmallChip(
+                                        icon: Icons.check_circle_outline,
+                                        label:
+                                            'Accepted: ${_totBox!.accepted}',
+                                        color: const Color(0xFF16A34A),
+                                      ),
+                                    if (_totBox!.withIssue.isNotEmpty &&
+                                        _totBox!.withIssue != '0')
+                                      _SmallChip(
+                                        icon: Icons.warning_amber_outlined,
+                                        label:
+                                            'Issue: ${_totBox!.withIssue}',
+                                        color: const Color(0xFFD97706),
+                                      ),
+                                    if (_totBox!.rejected.isNotEmpty &&
+                                        _totBox!.rejected != '0')
+                                      _SmallChip(
+                                        icon: Icons.cancel_outlined,
+                                        label:
+                                            'Rejected: ${_totBox!.rejected}',
+                                        color: Colors.red.shade400,
+                                      ),
+                                    if (_totBox!.hold == 'Y')
+                                      _SmallChip(
+                                        icon: Icons.pause_circle_outline,
+                                        label: 'Hold',
+                                        color: Colors.red.shade400,
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // ── Scan bar ─────────────────────────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _barcodeController,
+                    decoration: InputDecoration(
+                      hintText: 'Scan หรือพิมพ์ Barcode',
+                      hintStyle: TextStyle(
+                          color: Colors.grey.shade400, fontSize: 13),
+                      filled: true,
+                      fillColor: const Color(0xFFF1F5F9),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: Icon(Icons.qr_code_scanner,
+                          color: Colors.grey.shade400, size: 20),
+                      suffixIcon: _barcodeController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear,
+                                  size: 18, color: Colors.grey),
+                              onPressed: () {
+                                _barcodeController.clear();
+                                setState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: _handleBarcodeScan,
+                    textInputAction: TextInputAction.done,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Material(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => setState(() => _showScanner = true),
+                    child: const Padding(
+                      padding: EdgeInsets.all(11),
+                      child: Icon(Icons.camera_alt_outlined,
+                          color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // ── Manual Gen QR ────────────────────────────────────────
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      item.matDesc.isNotEmpty ? item.matDesc : '-',
-                      style: const TextStyle(
-                        fontSize: 14,
+                    const Icon(Icons.edit_note,
+                        color: AppTheme.primary, size: 18),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Manual Gen QR Code',
+                      style: TextStyle(
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
                       ),
                     ),
-                    if (item.matDesc2.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(item.matDesc2,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade500)),
-                    ],
-                    const SizedBox(height: 10),
-                    // Qty summary row
-                    _loadingBoxData
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: CircularProgressIndicator(
-                                  color: AppTheme.primary, strokeWidth: 2),
-                            ),
-                          )
-                        : _boxDataError != null
-                            ? _InlineError(
-                                message: _boxDataError!, onRetry: _loadBoxData)
-                            : Column(
-                                children: [
-                                  // Qty boxes
-                                  Row(
-                                    children: [
-                                      _QtyTile(
-                                        label: 'PO Qty',
-                                        value: '${_fmtD(totalQty)} ${item.uom}',
-                                        color: const Color(0xFF2563EB),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _QtyTile(
-                                        label: 'Scanned',
-                                        value: '${_fmtD(scannedQty)} ${item.uom}',
-                                        color: const Color(0xFF16A34A),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _QtyTile(
-                                        label: 'Pending',
-                                        value:
-                                            '${_fmtD((totalQty - scannedQty).clamp(0, double.infinity))} ${item.uom}',
-                                        color: (totalQty - scannedQty) > 0
-                                            ? const Color(0xFFD97706)
-                                            : Colors.grey,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  // Progress bar
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'สแกนแล้ว ${(pct * 100).toStringAsFixed(1)}%',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color:
-                                                    Colors.grey.shade500),
-                                          ),
-                                          Text(
-                                            '${_fmtD(scannedQty)} / ${_fmtD(totalQty)}',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color:
-                                                    Colors.grey.shade500),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(4),
-                                        child: LinearProgressIndicator(
-                                          value: pct,
-                                          minHeight: 8,
-                                          backgroundColor:
-                                              const Color(0xFFE2E8F0),
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                            pct >= 1.0
-                                                ? const Color(0xFF16A34A)
-                                                : AppTheme.primary,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  // Extra info from TotBox
-                                  if (_totBox != null) ...[
-                                    const SizedBox(height: 10),
-                                    const Divider(height: 1),
-                                    const SizedBox(height: 10),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 6,
-                                      children: [
-                                        if (_totBox!.accepted.isNotEmpty &&
-                                            _totBox!.accepted != '0')
-                                          _SmallChip(
-                                            icon: Icons.check_circle_outline,
-                                            label:
-                                                'Accepted: ${_totBox!.accepted}',
-                                            color: const Color(0xFF16A34A),
-                                          ),
-                                        if (_totBox!.withIssue.isNotEmpty &&
-                                            _totBox!.withIssue != '0')
-                                          _SmallChip(
-                                            icon: Icons.warning_amber_outlined,
-                                            label:
-                                                'Issue: ${_totBox!.withIssue}',
-                                            color: const Color(0xFFD97706),
-                                          ),
-                                        if (_totBox!.rejected.isNotEmpty &&
-                                            _totBox!.rejected != '0')
-                                          _SmallChip(
-                                            icon: Icons.cancel_outlined,
-                                            label:
-                                                'Rejected: ${_totBox!.rejected}',
-                                            color: Colors.red.shade400,
-                                          ),
-                                        if (_totBox!.hold == 'Y')
-                                          _SmallChip(
-                                            icon: Icons.pause_circle_outline,
-                                            label: 'Hold',
-                                            color: Colors.red.shade400,
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
                   ],
                 ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-
-            // ── Scan bar ─────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 12),
+                // Pack Date & Exp Date
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _barcodeController,
+                    Expanded(
+                      child: _DateField(
+                        label: 'Pack Date',
+                        date: _packDate,
+                        onTap: () => _selectDate(context, true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DateField(
+                        label: 'Exp Date',
+                        date: _expDate,
+                        onTap: () => _selectDate(context, false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Weight & Box Number
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'WEIGHT (KG)',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade500,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: _weightController,
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
+                            style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
-                              hintText: 'Scan หรือพิมพ์ Barcode',
+                              hintText: '0.00',
                               hintStyle: TextStyle(
                                   color: Colors.grey.shade400, fontSize: 13),
                               filled: true,
-                              fillColor: const Color(0xFFF1F5F9),
+                              fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                  horizontal: 10, vertical: 10),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0)),
                               ),
-                              prefixIcon: Icon(Icons.qr_code_scanner,
-                                  color: Colors.grey.shade400, size: 20),
-                              suffixIcon: _barcodeController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear,
-                                          size: 18, color: Colors.grey),
-                                      onPressed: () {
-                                        _barcodeController.clear();
-                                        setState(() {});
-                                      },
-                                    )
-                                  : null,
-                            ),
-                            onChanged: (_) => setState(() {}),
-                            onSubmitted: _handleBarcodeScan,
-                            textInputAction: TextInputAction.done,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Material(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(10),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () => setState(() => _showScanner = true),
-                            child: const Padding(
-                              padding: EdgeInsets.all(11),
-                              child: Icon(Icons.camera_alt_outlined,
-                                  color: Colors.white, size: 22),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-
-            // ── Manual Gen QR ────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.edit_note,
-                            color: AppTheme.primary, size: 18),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Manual Gen QR Code',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Pack Date & Exp Date
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DateField(
-                            label: 'Pack Date',
-                            date: _packDate,
-                            onTap: () => _selectDate(context, true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DateField(
-                            label: 'Exp Date',
-                            date: _expDate,
-                            onTap: () => _selectDate(context, false),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Weight & Box Number
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'WEIGHT (KG)',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.grey.shade500,
-                                  letterSpacing: 0.8,
-                                ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0)),
                               ),
-                              const SizedBox(height: 4),
-                              TextField(
-                                controller: _weightController,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                        decimal: true),
-                                style: const TextStyle(fontSize: 13),
-                                decoration: InputDecoration(
-                                  hintText: '0.00',
-                                  hintStyle: TextStyle(
-                                      color: Colors.grey.shade400,
-                                      fontSize: 13),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 10),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFE2E8F0)),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFE2E8F0)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: AppTheme.primary, width: 1.5),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'BOX NUMBER',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.grey.shade500,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              TextField(
-                                controller: _boxController,
-                                style: const TextStyle(fontSize: 13),
-                                decoration: InputDecoration(
-                                  hintText: 'BOX-001',
-                                  hintStyle: TextStyle(
-                                      color: Colors.grey.shade400,
-                                      fontSize: 13),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 10),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFE2E8F0)),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFE2E8F0)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: AppTheme.primary, width: 1.5),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    // Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: SizedBox(
-                            height: 44,
-                            child: ElevatedButton.icon(
-                              onPressed: _handleManualGenerate,
-                              icon: const Icon(Icons.qr_code_2, size: 18),
-                              label: const Text('Gen QR Code'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: AppTheme.primary, width: 1.5),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
-                          child: SizedBox(
-                            height: 44,
-                            child: OutlinedButton.icon(
-                              onPressed: _handleReprint,
-                              icon: const Icon(Icons.print, size: 18),
-                              label: const Text('Reprint'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppTheme.primary,
-                                side: BorderSide(
-                                    color: AppTheme.primary
-                                        .withValues(alpha: 0.4),
-                                    width: 1.5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-
-            // ── Section header ───────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
-                child: Row(
-                  children: [
-                    const Icon(Icons.inventory_2_outlined,
-                        size: 16, color: AppTheme.primary),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'รายการ Box ที่สแกนแล้ว',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
+                        ],
                       ),
                     ),
-                    const Spacer(),
-                    if (!_loadingBoxData)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_boxList.length} Box',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BOX NUMBER',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade500,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: _boxController,
+                            style: const TextStyle(fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'BOX-001',
+                              hintStyle: TextStyle(
+                                  color: Colors.grey.shade400, fontSize: 13),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                    color: AppTheme.primary, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: SizedBox(
+                        height: 44,
+                        child: ElevatedButton.icon(
+                          onPressed: _handleManualGenerate,
+                          icon: const Icon(Icons.qr_code_2, size: 18),
+                          label: const Text('Gen QR Code'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-
-            // ── Box list ─────────────────────────────────────────────
-            if (_loadingBoxData)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: AppTheme.primary),
-                ),
-              )
-            else if (_boxDataError != null)
-              SliverFillRemaining(
-                child: _InlineError(
-                    message: _boxDataError!, onRetry: _loadBoxData),
-              )
-            else if (_boxList.isEmpty)
-              const SliverFillRemaining(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.inbox_outlined,
-                            size: 56, color: Color(0xFFCBD5E1)),
-                        SizedBox(height: 12),
-                        Text(
-                          'ยังไม่มี Box ที่สแกน',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF94A3B8),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: _handleReprint,
+                          icon: const Icon(Icons.print, size: 18),
+                          label: const Text('Reprint'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: BorderSide(
+                                color:
+                                    AppTheme.primary.withValues(alpha: 0.4),
+                                width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // ── Box list section header (fixed) ──────────────────────
+          Container(
+            color: Colors.white,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                const Icon(Icons.inventory_2_outlined,
+                    size: 16, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                const Text(
+                  'รายการ Box ที่สแกนแล้ว',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => _BoxCard(
-                      box: _boxList[i],
-                      index: i + 1,
-                      onDelete: () => _handleDeleteBox(_boxList[i]),
+                const Spacer(),
+                if (!_loadingBoxData)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    childCount: _boxList.length,
+                    child: Text(
+                      '${_boxList.length} Box',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-          ],
-        ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // ── Box list (independently scrollable) ──────────────────
+          Expanded(
+            child: _loadingBoxData
+                ? const Center(
+                    child:
+                        CircularProgressIndicator(color: AppTheme.primary),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadBoxData,
+                    color: AppTheme.primary,
+                    child: _boxDataError != null
+                        ? ListView(
+                            physics:
+                                const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              _InlineError(
+                                  message: _boxDataError!,
+                                  onRetry: _loadBoxData),
+                            ],
+                          )
+                        : _boxList.isEmpty
+                            ? ListView(
+                                physics:
+                                    const AlwaysScrollableScrollPhysics(),
+                                children: const [
+                                  Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.inbox_outlined,
+                                              size: 56,
+                                              color: Color(0xFFCBD5E1)),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'ยังไม่มี Box ที่สแกน',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.separated(
+                                physics:
+                                    const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _boxList.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, i) => _BoxCard(
+                                  box: _boxList[i],
+                                  index: i + 1,
+                                  onDelete: () =>
+                                      _handleDeleteBox(_boxList[i]),
+                                ),
+                              ),
+                  ),
+          ),
+        ],
       ),
     );
   }
