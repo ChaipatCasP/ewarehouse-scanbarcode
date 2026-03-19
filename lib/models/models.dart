@@ -583,6 +583,7 @@ class TotBoxItem {
   final String waitRevise;
   final String wmsSeqId;
   final String totBarcodeQty;
+  final String maxBox;
   final Map<String, dynamic> raw;
 
   TotBoxItem({
@@ -614,6 +615,7 @@ class TotBoxItem {
     required this.waitRevise,
     required this.wmsSeqId,
     required this.totBarcodeQty,
+    required this.maxBox,
     required this.raw,
   });
 
@@ -647,6 +649,7 @@ class TotBoxItem {
       waitRevise:      json['WAIT_REVISE']?.toString()      ?? '',
       wmsSeqId:        json['WMS_SEQ_ID']?.toString()       ?? '',
       totBarcodeQty:   json['TOT_BARCODE_QTY']?.toString()  ?? '',
+      maxBox:          json['MAX_BOX']?.toString()           ?? '',
       raw:             json,
     );
   }
@@ -654,6 +657,76 @@ class TotBoxItem {
   bool get isHold => hold == 'Y';
   double get qtyValue => double.tryParse(qty) ?? 0.0;
   String get fullPoNo => poBook.isNotEmpty ? '$poBook/$poNo' : poNo;
+
+  Map<String, dynamic> toJson() => raw;
+}
+
+// ─── SetStickerBoxV2 ──────────────────────────────────────────────────────────
+
+class SetStickerBoxResult {
+  final String flag;           // FLAG  "1" = success
+  final String message;        // MESSAGE
+  final String poNo;           // PO_NO
+  final String productCode;    // PRODUCT_CODE
+  final String shortProductCode; // SHORT_PRODUCT_CODE
+  final String productName;    // PRODUCT_NAME
+  final String barcodeSup;     // BARCODE_SUP
+  final String qty;            // QTY
+  final String qtyFmt;         // QTY_FMT
+  final String packDate;       // PACK_DATE  YYYYMMDD
+  final String expDate;        // EXP_DATE   YYYYMMDD
+  final String boxNo;          // BOX_NO
+  final String newBarcode;     // NEW_BARCODE
+  final String idupp;          // IDUPP
+  final Map<String, dynamic> raw;
+
+  SetStickerBoxResult({
+    required this.flag,
+    required this.message,
+    required this.poNo,
+    required this.productCode,
+    required this.shortProductCode,
+    required this.productName,
+    required this.barcodeSup,
+    required this.qty,
+    required this.qtyFmt,
+    required this.packDate,
+    required this.expDate,
+    required this.boxNo,
+    required this.newBarcode,
+    required this.idupp,
+    required this.raw,
+  });
+
+  factory SetStickerBoxResult.fromJson(Map<String, dynamic> json) {
+    return SetStickerBoxResult(
+      flag:             json['FLAG']?.toString()               ?? '',
+      message:          json['MESSAGE']?.toString()            ?? '',
+      poNo:             json['PO_NO']?.toString()              ?? '',
+      productCode:      json['PRODUCT_CODE']?.toString()       ?? '',
+      shortProductCode: json['SHORT_PRODUCT_CODE']?.toString() ?? '',
+      productName:      json['PRODUCT_NAME']?.toString()       ?? '',
+      barcodeSup:       json['BARCODE_SUP']?.toString()        ?? '',
+      qty:              json['QTY']?.toString()                ?? '',
+      qtyFmt:           json['QTY_FMT']?.toString()            ?? '',
+      packDate:         json['PACK_DATE']?.toString()          ?? '',
+      expDate:          json['EXP_DATE']?.toString()           ?? '',
+      boxNo:            json['BOX_NO']?.toString()             ?? '',
+      newBarcode:       json['NEW_BARCODE']?.toString()        ?? '',
+      idupp:            json['IDUPP']?.toString()              ?? '',
+      raw:              json,
+    );
+  }
+
+  bool get isSuccess => flag == '1';
+
+  /// แปลง PACK_DATE / EXP_DATE จาก YYYYMMDD → DD/MM/YYYY
+  static String fmtDate(String raw) {
+    if (raw.length == 8) {
+      return '${raw.substring(6)}/${raw.substring(4, 6)}/${raw.substring(0, 4)}';
+    }
+    return raw;
+  }
 
   Map<String, dynamic> toJson() => raw;
 }

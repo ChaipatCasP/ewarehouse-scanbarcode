@@ -559,6 +559,106 @@ class ApiService {
       throw ApiException('GetTotBox HTTP error: ${response.statusCode}');
     }
   }
+
+  // ── SetStickerBoxV2 ────────────────────────────────────────────────────────
+
+  /// POST /Apip/WsEwarehouse/SetStickerBoxV2
+  ///
+  /// สแกน/บันทึก Barcode ของ Supplier พร้อม Generate New Barcode
+  ///
+  /// Parameters:
+  /// - [company]   : รหัสบริษัท เช่น "JB"
+  /// - [user]      : username
+  /// - [dType]     : TRANSACTION_TYPE เช่น "PE"
+  /// - [dBook]     : PO_BOOK_NO เช่น "PE66"
+  /// - [dNo]       : PO_NO เช่น "4"
+  /// - [dSeq]      : PO_LINE เช่น "1"
+  /// - [product]   : รหัสสินค้า เช่น "MTBFUN661111624"
+  /// - [box]       : เลขกล่อง (ว่างได้) ถ้ากด Gen QR CODE จ่าก Manual Gen QR CODE and ถ้ามีการสแกน Barcode ของ Supplier 
+  /// - [barSup]    : Barcode ของ Supplier ถ้ามีการสแกน (ว่างได้)
+  /// - [mfgDate]   : วันผลิต YYYYMMDD (ว่างได้) ถ้ากด Gen QR CODE จ่าก Manual Gen QR CODE
+  /// - [expDate]   : วันหมดอายุ YYYYMMDD (ว่างได้) ถ้ากด Gen QR CODE จ่าก Manual Gen QR CODE
+  /// - [boxStatus] : สถานะกล่อง เช่น "N"
+  /// - [mWeight]   : น้ำหนัก (ว่างได้) ถ้ากด Gen QR CODE จ่าก Manual Gen QR CODE
+  Future<SetStickerBoxResult> setStickerBox({
+    required String company,
+    required String user,
+    required String dType,
+    required String dBook,
+    required String dNo,
+    required String dSeq,
+    required String product,
+    String box = '',
+    String barSup = '',
+    String mfgDate = '',
+    String expDate = '',
+    String boxStatus = '', // '' new Gen QR code, 'D' = Delete, 'O' = Reprint
+    String mWeight = '',
+    String key = '',
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/SetStickerBoxV2'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']        = company;
+    request.fields['P_USER']       = user;
+    request.fields['P_KEY']        = key;
+    request.fields['P_DTYPE']      = dType;
+    request.fields['P_DBOOK']      = dBook;
+    request.fields['P_DNO']        = dNo;
+    request.fields['P_DSEQ']       = dSeq;
+    request.fields['P_PRODUCT']    = product;
+    request.fields['P_BOX']        = box;
+    request.fields['P_BAR_SUP']    = barSup;
+    request.fields['P_MFGDATE']    = mfgDate;
+    request.fields['P_EXPDATE']    = expDate;
+    request.fields['P_BOX_STATUS'] = boxStatus;
+    request.fields['P_MWEIGHT']    = mWeight;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: SetStickerBoxV2');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: SetStickerBoxV2');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (decoded['jwt'] == 0) {
+        throw ApiException(decoded['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (decoded['flag'] != null && decoded['flag'].toString() != '1') {
+        final resultList = decoded['result'] as List<dynamic>?;
+        final msg = resultList != null && resultList.isNotEmpty
+            ? (resultList.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : decoded['message'] as String? ?? '';
+        throw ApiException(msg.isNotEmpty ? msg : 'SetStickerBoxV2 failed (flag≠1)');
+      }
+
+      // ข้อมูลจริงอยู่ใน result[0] เหมือน API อื่นๆ
+      final resultList = decoded['result'] as List<dynamic>?;
+      final Map<String, dynamic> data = resultList != null && resultList.isNotEmpty
+          ? resultList.first as Map<String, dynamic>
+          : decoded;
+
+      return SetStickerBoxResult.fromJson(data);
+    } else {
+      throw ApiException('SetStickerBoxV2 HTTP error: ${response.statusCode}');
+    }
+  }
 }
 
 class ApiException implements Exception {

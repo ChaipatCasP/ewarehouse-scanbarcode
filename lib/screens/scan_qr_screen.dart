@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../services/bluetooth_printer_service.dart';
 
 class ScanQRScreen extends StatefulWidget {
   final ApiService apiService;
@@ -41,6 +42,10 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   TotBoxItem? _totBox;
   bool _loadingBoxData = false;
   String? _boxDataError;
+
+  // ── Bluetooth printer ──────────────────────────────────────────
+  final _btPrinter = BtPrinterService();
+  String _printerName = '';
 
   @override
   void initState() {
@@ -79,9 +84,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       if (!mounted) return;
       final boxes = results[0] as List<LstBoxItem>;
       final tots  = results[1] as List<TotBoxItem>;
+      final firstTot = tots.isNotEmpty ? tots.first : null;
+      // ตั้งค่า BOX NUMBER = MAX_BOX + 1 (เฉพาะครั้งแรก ไม่ทับสิ่งที่ user แก้ไว้)
+      if (firstTot != null && _boxController.text.isEmpty) {
+        final maxBox = int.tryParse(firstTot.maxBox) ?? 0;
+        _boxController.text = (maxBox + 1).toString();
+      }
       setState(() {
         _boxList = boxes;
-        _totBox  = tots.isNotEmpty ? tots.first : null;
+        _totBox  = firstTot;
         _loadingBoxData = false;
       });
     } catch (e) {
@@ -103,13 +114,36 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     });
 
     try {
-      final result = await widget.apiService.scanBarcode(barcode);
-      if (!mounted) return;
-      setState(() {
-        _qrResult = result;
-        _isLoading = false;
-      });
-      _showQRDialog(result);
+      if (_isProductMode) {
+        final item = widget.item!;
+        final plan = widget.plan!;
+        final result = await widget.apiService.setStickerBox(
+          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          user: widget.apiService.username,
+          dType: plan.transactionType,
+          dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+          dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+          dSeq: item.poLine,
+          product: item.matCode,
+          box: _boxController.text.trim(),
+          barSup: barcode,
+        );
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _barcodeController.clear();
+        });
+        _loadBoxData();
+        _showStickerResultDialog(result);
+      } else {
+        final result = await widget.apiService.scanBarcode(barcode);
+        if (!mounted) return;
+        setState(() {
+          _qrResult = result;
+          _isLoading = false;
+        });
+        _showQRDialog(result);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -145,25 +179,206 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final dateFormat = DateFormat('yyyy-MM-dd');
-      final result = await widget.apiService.generateQRCode(
-        packDate: dateFormat.format(_packDate!),
-        expDate: dateFormat.format(_expDate!),
-        weight: weight,
-        boxNumber: boxNumber,
-      );
-      if (!mounted) return;
-      setState(() {
-        _qrResult = result;
-        _isLoading = false;
-      });
-      _showQRDialog(result);
+      if (_isProductMode) {
+        final item = widget.item!;
+        final plan = widget.plan!;
+        final dateFmt = DateFormat('yyyyMMdd');
+        final result = await widget.apiService.setStickerBox(
+          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          user: widget.apiService.username,
+          dType: plan.transactionType,
+          dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+          dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+          dSeq:item.poLine,
+          product: item.matCode,
+          box: boxNumber,
+          barSup: '',
+          mfgDate: dateFmt.format(_packDate!),
+          expDate: dateFmt.format(_expDate!),
+          mWeight: _weightController.text.trim(),
+        );
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _loadBoxData();
+        _showStickerResultDialog(result, _weightController.text.trim());
+      } else {
+        final dateFormat = DateFormat('yyyy-MM-dd');
+        final result = await widget.apiService.generateQRCode(
+          packDate: dateFormat.format(_packDate!),
+          expDate: dateFormat.format(_expDate!),
+          weight: weight,
+          boxNumber: boxNumber,
+        );
+        if (!mounted) return;
+        setState(() {
+          _qrResult = result;
+          _isLoading = false;
+        });
+        _showQRDialog(result);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  }
+
+  Future<void> _handleReprint() async {
+    final boxNumber = _boxController.text.trim();
+    if (boxNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter box number')),
+      );
+      return;
+    }
+
+    final item = widget.item!;
+    final plan = widget.plan!;
+    setState(() => _isLoading = true);
+    try {
+      final result = await widget.apiService.setStickerBox(
+        company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+        user: widget.apiService.username,
+        dType: plan.transactionType,
+        dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+        dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+        dSeq: item.poLine,
+        product: item.matCode,
+        box: boxNumber,
+        barSup: '',
+        boxStatus: 'O',
+      );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showStickerResultDialog(result);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  void _showStickerResultDialog(SetStickerBoxResult result, [String weight = '']) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _StickerResultSheet(result: result, weight: weight),
+    );
+    _autoPrintLabel(result, weight);
+  }
+
+  Future<void> _autoPrintLabel(
+      SetStickerBoxResult result, String weight) async {
+    final connected = await _btPrinter.isConnected;
+    if (!connected) return;
+    final expDateFmt = SetStickerBoxResult.fmtDate(result.expDate);
+    final supBarcode =
+        result.barcodeSup.isNotEmpty ? result.barcodeSup : result.productCode;
+    final ok = await _btPrinter.printStickerLabel(
+      newBarcode: result.newBarcode,
+      poNo: result.poNo,
+      supBarcode: supBarcode,
+      expDate: expDateFmt,
+      boxNo: result.boxNo,
+      weight: weight.isNotEmpty ? weight : result.qty,
+    );
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ ปริ้นไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ Bluetooth'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showPrinterSelectorSheet() async {
+    final enabled = await _btPrinter.isBluetoothEnabled;
+    if (!enabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเปิด Bluetooth ก่อน')),
+      );
+      return;
+    }
+    final devices = await _btPrinter.getPairedDevices();
+    if (!mounted) return;
+    if (devices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'ไม่พบเครื่องปริ้น — จัดคู่เครื่อง Bluetooth ก่อน')),
+      );
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(Icons.print, color: AppTheme.primary),
+                SizedBox(width: 8),
+                Text('เลือกเครื่องปริ้น',
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...devices.map(
+            (d) => ListTile(
+              leading: const Icon(Icons.bluetooth, color: AppTheme.primary),
+              title: Text(d.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(d.macAdress,
+                  style: const TextStyle(fontSize: 11)),
+              trailing:
+                  _btPrinter.selectedPrinter?.macAdress == d.macAdress
+                      ? const Icon(Icons.check_circle,
+                          color: Color(0xFF16A34A))
+                      : null,
+              onTap: () async {
+                Navigator.pop(ctx);
+                final ok = await _btPrinter.connect(d);
+                if (!mounted) return;
+                setState(() {
+                  _printerName = ok ? d.name : '';
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? '✅ เชื่อมต่อ ${d.name} แล้ว'
+                        : '❌ ไม่สามารถเชื่อมต่อ ${d.name}'),
+                    backgroundColor:
+                        ok ? const Color(0xFF16A34A) : Colors.red,
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
   }
 
   void _showQRDialog(QRCodeData data) {
@@ -604,6 +819,16 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(
+              Icons.print_outlined,
+              color: _printerName.isNotEmpty
+                  ? AppTheme.primary
+                  : Colors.grey.shade400,
+            ),
+            tooltip: _printerName.isNotEmpty ? _printerName : 'เลือกเครื่องปริ้น',
+            onPressed: _showPrinterSelectorSheet,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.primary),
             onPressed: _loadBoxData,
           ),
@@ -772,6 +997,279 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             ),
             const SliverToBoxAdapter(child: Divider(height: 1)),
 
+            // ── Scan bar ─────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _barcodeController,
+                            decoration: InputDecoration(
+                              hintText: 'Scan หรือพิมพ์ Barcode',
+                              hintStyle: TextStyle(
+                                  color: Colors.grey.shade400, fontSize: 13),
+                              filled: true,
+                              fillColor: const Color(0xFFF1F5F9),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon: Icon(Icons.qr_code_scanner,
+                                  color: Colors.grey.shade400, size: 20),
+                              suffixIcon: _barcodeController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear,
+                                          size: 18, color: Colors.grey),
+                                      onPressed: () {
+                                        _barcodeController.clear();
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                            ),
+                            onChanged: (_) => setState(() {}),
+                            onSubmitted: _handleBarcodeScan,
+                            textInputAction: TextInputAction.done,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Material(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => setState(() => _showScanner = true),
+                            child: const Padding(
+                              padding: EdgeInsets.all(11),
+                              child: Icon(Icons.camera_alt_outlined,
+                                  color: Colors.white, size: 22),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+
+            // ── Manual Gen QR ────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.edit_note,
+                            color: AppTheme.primary, size: 18),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Manual Gen QR Code',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Pack Date & Exp Date
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DateField(
+                            label: 'Pack Date',
+                            date: _packDate,
+                            onTap: () => _selectDate(context, true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DateField(
+                            label: 'Exp Date',
+                            date: _expDate,
+                            onTap: () => _selectDate(context, false),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Weight & Box Number
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'WEIGHT (KG)',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: _weightController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: '0.00',
+                                  hintStyle: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF8FAFC),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFE2E8F0)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFE2E8F0)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: AppTheme.primary, width: 1.5),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'BOX NUMBER',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              TextField(
+                                controller: _boxController,
+                                style: const TextStyle(fontSize: 13),
+                                decoration: InputDecoration(
+                                  hintText: 'BOX-001',
+                                  hintStyle: TextStyle(
+                                      color: Colors.grey.shade400,
+                                      fontSize: 13),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF8FAFC),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 10),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFE2E8F0)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: Color(0xFFE2E8F0)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(
+                                        color: AppTheme.primary, width: 1.5),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: SizedBox(
+                            height: 44,
+                            child: ElevatedButton.icon(
+                              onPressed: _handleManualGenerate,
+                              icon: const Icon(Icons.qr_code_2, size: 18),
+                              label: const Text('Gen QR Code'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: SizedBox(
+                            height: 44,
+                            child: OutlinedButton.icon(
+                              onPressed: _handleReprint,
+                              icon: const Icon(Icons.print, size: 18),
+                              label: const Text('Reprint'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.primary,
+                                side: BorderSide(
+                                    color: AppTheme.primary
+                                        .withValues(alpha: 0.4),
+                                    width: 1.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+
             // ── Section header ───────────────────────────────────────
             SliverToBoxAdapter(
               child: Container(
@@ -856,8 +1354,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, i) =>
-                        _BoxCard(box: _boxList[i], index: i + 1),
+                    (context, i) => _BoxCard(
+                      box: _boxList[i],
+                      index: i + 1,
+                      onDelete: () => _handleDeleteBox(_boxList[i]),
+                    ),
                     childCount: _boxList.length,
                   ),
                 ),
@@ -866,6 +1367,62 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleDeleteBox(LstBoxItem box) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันการลบ'),
+        content: Text('ต้องการลบ Box ${box.boxNo.isNotEmpty ? box.boxNo : '-'} ใช่หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ยกเลิก'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final item = widget.item!;
+    final plan = widget.plan!;
+    setState(() => _isLoading = true);
+    try {
+      await widget.apiService.setStickerBox(
+        company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+        user: widget.apiService.username,
+        dType: plan.transactionType,
+        dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+        dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+        dSeq: item.poLine,
+        product: item.matCode,
+        box: box.boxNo,
+        barSup: box.barcode,
+        mfgDate: box.mfgDate,
+        expDate: box.expDate,
+        boxStatus: 'D',
+      );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _loadBoxData();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ลบ Box ${box.boxNo} สำเร็จ'),
+          backgroundColor: const Color(0xFF16A34A),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   String _fmtD(double v) {
@@ -1173,12 +1730,280 @@ class _QRResultSheet extends StatelessWidget {
   }
 }
 
+// ── Sticker Result Sheet ─────────────────────────────────────────────────────
+
+class _StickerResultSheet extends StatelessWidget {
+  final SetStickerBoxResult result;
+  final String weight;
+  const _StickerResultSheet({required this.result, this.weight = ''});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+        left: 16,
+        right: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+              SizedBox(width: 6),
+              Text(
+                'Gen QR Code สำเร็จ',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // ── Label preview ──────────────────────────────────────────
+          _LabelCard(result: result, weight: weight),
+          const SizedBox(height: 20),
+          // ── Buttons ────────────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.print, size: 18),
+                    label: const Text('Print'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(
+                          color: AppTheme.primary, width: 1.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('ปิด',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Label Card (matches PDF label format) ────────────────────────────────────
+//
+//  +──────────────+──────────────────────+
+//  │              │  PO69/1180/01        │
+//  │   QR Code   │  MTP%0844            │
+//  │              │  Exp: 15/03/2027     │
+//  +──────63──────+──────999.9 Kg.───────+
+
+class _LabelCard extends StatelessWidget {
+  final SetStickerBoxResult result;
+  final String weight;
+  const _LabelCard({required this.result, required this.weight});
+
+  @override
+  Widget build(BuildContext context) {
+    final expDateFmt    = SetStickerBoxResult.fmtDate(result.expDate);
+    final displayWeight = weight.isNotEmpty
+        ? weight
+        : (result.qty.isNotEmpty ? result.qty : '-');
+    final displaySupBarcode = result.barcodeSup.isNotEmpty
+        ? result.barcodeSup
+        : result.productCode;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.black, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      // PDF ratio: 226.8 × 147.6 ≈ 1.537
+      child: AspectRatio(
+        aspectRatio: 226.8 / 147.6,
+        child: Column(
+          children: [
+            // ── Main row: QR | text info ───────────────────────────
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Left – QR code
+                  Expanded(
+                    flex: 44,
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: result.newBarcode.isNotEmpty
+                          ? QrImageView(
+                              data: result.newBarcode,
+                              version: QrVersions.auto,
+                              gapless: false,
+                            )
+                          : const Center(
+                              child: Icon(Icons.qr_code,
+                                  size: 48, color: Colors.grey)),
+                    ),
+                  ),
+                  // Vertical divider
+                  Container(width: 1.5, color: Colors.black),
+                  // Right – PO / Barcode Sup / Exp date
+                  Expanded(
+                    flex: 56,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text(
+                            result.poNo.isNotEmpty ? result.poNo : '-',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            displaySupBarcode.isNotEmpty
+                                ? displaySupBarcode
+                                : '-',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Exp: ${expDateFmt.isNotEmpty ? expDateFmt : '-'}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Horizontal divider
+            Container(height: 1.5, color: Colors.black),
+            // ── Bottom row: Box number | Weight ───────────────────
+            SizedBox(
+              height: 36,
+              child: Row(
+                children: [
+                  // Box number – large font
+                  Expanded(
+                    flex: 44,
+                    child: Center(
+                      child: Text(
+                        result.boxNo.isNotEmpty ? result.boxNo : '-',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(width: 1.5, color: Colors.black),
+                  // Weight
+                  Expanded(
+                    flex: 56,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            displayWeight,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          const Text(
+                            'Kg.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Box Card ──────────────────────────────────────────────────────────────────
 
 class _BoxCard extends StatelessWidget {
   final LstBoxItem box;
   final int index;
-  const _BoxCard({required this.box, required this.index});
+  final VoidCallback? onDelete;
+  const _BoxCard({required this.box, required this.index, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -1228,7 +2053,7 @@ class _BoxCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          box.boxNo.isNotEmpty ? box.boxNo : '-',
+                         'Box No. ${box.boxNo.isNotEmpty ? box.boxNo : '-'}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -1253,6 +2078,17 @@ class _BoxCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                      if (onDelete != null) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: onDelete,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(Icons.delete_outline,
+                                size: 20, color: Colors.red),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -1264,10 +2100,10 @@ class _BoxCard extends StatelessWidget {
                         _InfoRow(
                             icon: Icons.qr_code,
                             label: box.barcode),
-                      if (box.newBarcode.isNotEmpty)
-                        _InfoRow(
-                            icon: Icons.qr_code_2,
-                            label: 'New: ${box.newBarcode}'),
+                      // if (box.newBarcode.isNotEmpty)
+                      //   _InfoRow(
+                      //       icon: Icons.qr_code_2,
+                      //       label: 'New: ${box.newBarcode}'),
                       if (box.mfgDate.isNotEmpty)
                         _InfoRow(
                             icon: Icons.calendar_today_outlined,
