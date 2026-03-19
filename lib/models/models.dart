@@ -501,3 +501,159 @@ class PurProductResult {
     );
   }
 }
+
+// ─── GET_LST_BOX ──────────────────────────────────────────────────────────────
+
+class LstBoxItem {
+  final String company;
+  final String docBook;
+  final String docNo;
+  final String docSeq;
+  final String boxNo;
+  final String qty;
+  final String mfgDate;
+  final String expDate;
+  final String newBarcode;
+  final String barcode;
+  final Map<String, dynamic> raw;
+
+  LstBoxItem({
+    required this.company,
+    required this.docBook,
+    required this.docNo,
+    required this.docSeq,
+    required this.boxNo,
+    required this.qty,
+    required this.mfgDate,
+    required this.expDate,
+    required this.newBarcode,
+    required this.barcode,
+    required this.raw,
+  });
+
+  factory LstBoxItem.fromJson(Map<String, dynamic> json) {
+    return LstBoxItem(
+      company:    json['COMPANY']?.toString()    ?? '',
+      docBook:    json['DOC_BOOK']?.toString()   ?? '',
+      docNo:      json['DOC_NO']?.toString()     ?? '',
+      docSeq:     json['DOC_SEQ']?.toString()    ?? '',
+      boxNo:      json['BOX_NO']?.toString()     ?? '',
+      qty:        json['QTY']?.toString()        ?? '',
+      mfgDate:    json['MFG_DATE']?.toString()   ?? '',
+      expDate:    json['EXP_DATE']?.toString()   ?? '',
+      newBarcode: json['NEW_BARCODE']?.toString() ?? '',
+      barcode:    json['BARCODE']?.toString()    ?? '',
+      raw:        json,
+    );
+  }
+
+  double get qtyValue => double.tryParse(qty) ?? 0.0;
+
+  Map<String, dynamic> toJson() => raw;
+}
+
+// ─── GetTotBox ────────────────────────────────────────────────────────────────
+
+class TotBoxItem {
+  final String company;
+  final String transactionType;
+  final String poBook;
+  final String poNo;
+  final String supCode;
+  final String seq;
+  final String productCode;
+  final String productName;
+  final String qty;
+  final String unit;
+  final String currQty;
+  final String pendQty;
+  final String accepted;
+  final String withIssue;
+  final String rejected;
+  final String qcStatus;
+  final String hold;
+  final String lastDays;
+  final String priority;
+  final String stkOnHandBkk;
+  final String stkOnHandSmu;
+  final String stkOnHandPhu;
+  final String specSheet;
+  final String cntSpecSheet;
+  final String subPacking;
+  final String waitRevise;
+  final String wmsSeqId;
+  final String totBarcodeQty;
+  final Map<String, dynamic> raw;
+
+  TotBoxItem({
+    required this.company,
+    required this.transactionType,
+    required this.poBook,
+    required this.poNo,
+    required this.supCode,
+    required this.seq,
+    required this.productCode,
+    required this.productName,
+    required this.qty,
+    required this.unit,
+    required this.currQty,
+    required this.pendQty,
+    required this.accepted,
+    required this.withIssue,
+    required this.rejected,
+    required this.qcStatus,
+    required this.hold,
+    required this.lastDays,
+    required this.priority,
+    required this.stkOnHandBkk,
+    required this.stkOnHandSmu,
+    required this.stkOnHandPhu,
+    required this.specSheet,
+    required this.cntSpecSheet,
+    required this.subPacking,
+    required this.waitRevise,
+    required this.wmsSeqId,
+    required this.totBarcodeQty,
+    required this.raw,
+  });
+
+  factory TotBoxItem.fromJson(Map<String, dynamic> json) {
+    return TotBoxItem(
+      company:         json['COMPANY']?.toString()          ?? '',
+      transactionType: json['TRANSACTION_TYPE']?.toString() ?? '',
+      poBook:          json['PO_BOOK']?.toString()          ?? '',
+      poNo:            json['PO_NO']?.toString()            ?? '',
+      supCode:         json['SUP_CODE']?.toString()         ?? '',
+      seq:             json['SEQ']?.toString()              ?? '',
+      productCode:     json['PRODUCT_CODE']?.toString()     ?? '',
+      productName:     json['PRODUCT_NAME']?.toString()     ?? '',
+      qty:             json['QTY']?.toString()              ?? '',
+      unit:            json['UNIT']?.toString()             ?? '',
+      currQty:         json['CURR_QTY']?.toString()         ?? '',
+      pendQty:         json['PEND_QTY']?.toString()         ?? '',
+      accepted:        json['ACCEPTED']?.toString()         ?? '',
+      withIssue:       json['WITH_ISSUE']?.toString()       ?? '',
+      rejected:        json['REJECTED']?.toString()         ?? '',
+      qcStatus:        json['QC_STATUS']?.toString()        ?? '',
+      hold:            json['HOLD']?.toString()             ?? '',
+      lastDays:        json['LAST_DAYS']?.toString()        ?? '',
+      priority:        json['PRIORITY']?.toString()         ?? '',
+      stkOnHandBkk:    json['STK_ON_HAND_BKK']?.toString()  ?? '',
+      stkOnHandSmu:    json['STK_ON_HAND_SMU']?.toString()  ?? '',
+      stkOnHandPhu:    json['STK_ON_HAND_PHU']?.toString()  ?? '',
+      specSheet:       json['SPEC_SHEET']?.toString()       ?? '',
+      cntSpecSheet:    json['CNT_SPEC_SHEET']?.toString()   ?? '',
+      subPacking:      json['SUB_PACKING']?.toString()      ?? '',
+      waitRevise:      json['WAIT_REVISE']?.toString()      ?? '',
+      wmsSeqId:        json['WMS_SEQ_ID']?.toString()       ?? '',
+      totBarcodeQty:   json['TOT_BARCODE_QTY']?.toString()  ?? '',
+      raw:             json,
+    );
+  }
+
+  bool get isHold => hold == 'Y';
+  double get qtyValue => double.tryParse(qty) ?? 0.0;
+  String get fullPoNo => poBook.isNotEmpty ? '$poBook/$poNo' : poNo;
+
+  Map<String, dynamic> toJson() => raw;
+}

@@ -8,14 +8,23 @@ import '../theme/app_theme.dart';
 
 class ScanQRScreen extends StatefulWidget {
   final ApiService apiService;
+  // ── Product-scan mode (from PurProductScreen) ─────────────────────────────
+  final PurProductItem? item;
+  final RcvPlanDtlItem? plan;
 
-  const ScanQRScreen({super.key, required this.apiService});
+  const ScanQRScreen({
+    super.key,
+    required this.apiService,
+    this.item,
+    this.plan,
+  });
 
   @override
   State<ScanQRScreen> createState() => _ScanQRScreenState();
 }
 
 class _ScanQRScreenState extends State<ScanQRScreen> {
+  // ── Generic scan fields ────────────────────────────────────────────────────
   final _barcodeController = TextEditingController();
   final _weightController = TextEditingController();
   final _boxController = TextEditingController();
@@ -25,6 +34,64 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   bool _isLoading = false;
   QRCodeData? _qrResult;
   bool _showScanner = false;
+
+  // ── Product-scan mode state ────────────────────────────────────────────────
+  bool get _isProductMode => widget.item != null;
+  List<LstBoxItem> _boxList = [];
+  TotBoxItem? _totBox;
+  bool _loadingBoxData = false;
+  String? _boxDataError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isProductMode) _loadBoxData();
+  }
+
+  Future<void> _loadBoxData() async {
+    final item = widget.item!;
+    final plan = widget.plan!;
+    setState(() {
+      _loadingBoxData = true;
+      _boxDataError = null;
+    });
+    try {
+      final results = await Future.wait([
+        widget.apiService.getLstBox(
+          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          user: widget.apiService.username,
+          dType: plan.transactionType,
+          dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+          dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+          dSeq: item.poLine,
+          product: item.matCode,
+        ),
+        widget.apiService.getTotBox(
+          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          user: widget.apiService.username,
+          dType: plan.transactionType,
+          dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
+          dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
+          dSeq: item.poLine,
+          product: item.matCode,
+        ),
+      ]);
+      if (!mounted) return;
+      final boxes = results[0] as List<LstBoxItem>;
+      final tots  = results[1] as List<TotBoxItem>;
+      setState(() {
+        _boxList = boxes;
+        _totBox  = tots.isNotEmpty ? tots.first : null;
+        _loadingBoxData = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _boxDataError = e.toString();
+        _loadingBoxData = false;
+      });
+    }
+  }
 
   Future<void> _handleBarcodeScan(String barcode) async {
     if (barcode.isEmpty) return;
@@ -146,6 +213,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   Widget build(BuildContext context) {
     if (_showScanner) {
       return _buildScannerView();
+    }
+
+    // ── Product-scan mode ──────────────────────────────────────────────────
+    if (_isProductMode) {
+      return _buildProductScanMode();
     }
 
     return Scaffold(
@@ -495,6 +567,312 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     );
   }
 
+  // ── Product-scan mode UI ───────────────────────────────────────────────────
+  Widget _buildProductScanMode() {
+    final item = widget.item!;
+    final plan = widget.plan!;
+
+    final scannedQty  = double.tryParse(_totBox?.totBarcodeQty ?? '') ?? 0.0;
+    final totalQty    = item.poQty;
+    final pct         = totalQty > 0 ? (scannedQty / totalQty).clamp(0.0, 1.0) : 0.0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.matCode.isNotEmpty ? item.matCode : item.fullPoNo,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primary,
+              ),
+            ),
+            Text(
+              plan.fullPoNo,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppTheme.primary),
+            onPressed: _loadBoxData,
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadBoxData,
+        color: AppTheme.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // ── Product Info Banner ──────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.matDesc.isNotEmpty ? item.matDesc : '-',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    if (item.matDesc2.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(item.matDesc2,
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade500)),
+                    ],
+                    const SizedBox(height: 10),
+                    // Qty summary row
+                    _loadingBoxData
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: CircularProgressIndicator(
+                                  color: AppTheme.primary, strokeWidth: 2),
+                            ),
+                          )
+                        : _boxDataError != null
+                            ? _InlineError(
+                                message: _boxDataError!, onRetry: _loadBoxData)
+                            : Column(
+                                children: [
+                                  // Qty boxes
+                                  Row(
+                                    children: [
+                                      _QtyTile(
+                                        label: 'PO Qty',
+                                        value: '${_fmtD(totalQty)} ${item.uom}',
+                                        color: const Color(0xFF2563EB),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _QtyTile(
+                                        label: 'Scanned',
+                                        value: '${_fmtD(scannedQty)} ${item.uom}',
+                                        color: const Color(0xFF16A34A),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _QtyTile(
+                                        label: 'Pending',
+                                        value:
+                                            '${_fmtD((totalQty - scannedQty).clamp(0, double.infinity))} ${item.uom}',
+                                        color: (totalQty - scannedQty) > 0
+                                            ? const Color(0xFFD97706)
+                                            : Colors.grey,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Progress bar
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'สแกนแล้ว ${(pct * 100).toStringAsFixed(1)}%',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color:
+                                                    Colors.grey.shade500),
+                                          ),
+                                          Text(
+                                            '${_fmtD(scannedQty)} / ${_fmtD(totalQty)}',
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color:
+                                                    Colors.grey.shade500),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(4),
+                                        child: LinearProgressIndicator(
+                                          value: pct,
+                                          minHeight: 8,
+                                          backgroundColor:
+                                              const Color(0xFFE2E8F0),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            pct >= 1.0
+                                                ? const Color(0xFF16A34A)
+                                                : AppTheme.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // Extra info from TotBox
+                                  if (_totBox != null) ...[
+                                    const SizedBox(height: 10),
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 6,
+                                      children: [
+                                        if (_totBox!.accepted.isNotEmpty &&
+                                            _totBox!.accepted != '0')
+                                          _SmallChip(
+                                            icon: Icons.check_circle_outline,
+                                            label:
+                                                'Accepted: ${_totBox!.accepted}',
+                                            color: const Color(0xFF16A34A),
+                                          ),
+                                        if (_totBox!.withIssue.isNotEmpty &&
+                                            _totBox!.withIssue != '0')
+                                          _SmallChip(
+                                            icon: Icons.warning_amber_outlined,
+                                            label:
+                                                'Issue: ${_totBox!.withIssue}',
+                                            color: const Color(0xFFD97706),
+                                          ),
+                                        if (_totBox!.rejected.isNotEmpty &&
+                                            _totBox!.rejected != '0')
+                                          _SmallChip(
+                                            icon: Icons.cancel_outlined,
+                                            label:
+                                                'Rejected: ${_totBox!.rejected}',
+                                            color: Colors.red.shade400,
+                                          ),
+                                        if (_totBox!.hold == 'Y')
+                                          _SmallChip(
+                                            icon: Icons.pause_circle_outline,
+                                            label: 'Hold',
+                                            color: Colors.red.shade400,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+
+            // ── Section header ───────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.inventory_2_outlined,
+                        size: 16, color: AppTheme.primary),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'รายการ Box ที่สแกนแล้ว',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!_loadingBoxData)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_boxList.length} Box',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+
+            // ── Box list ─────────────────────────────────────────────
+            if (_loadingBoxData)
+              const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+              )
+            else if (_boxDataError != null)
+              SliverFillRemaining(
+                child: _InlineError(
+                    message: _boxDataError!, onRetry: _loadBoxData),
+              )
+            else if (_boxList.isEmpty)
+              const SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inbox_outlined,
+                            size: 56, color: Color(0xFFCBD5E1)),
+                        SizedBox(height: 12),
+                        Text(
+                          'ยังไม่มี Box ที่สแกน',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) =>
+                        _BoxCard(box: _boxList[i], index: i + 1),
+                    childCount: _boxList.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtD(double v) {
+    if (v == v.truncateToDouble()) return v.toInt().toString();
+    return v.toStringAsFixed(2);
+  }
+
   Widget _buildScannerView() {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -790,6 +1168,264 @@ class _QRResultSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Box Card ──────────────────────────────────────────────────────────────────
+
+class _BoxCard extends StatelessWidget {
+  final LstBoxItem box;
+  final int index;
+  const _BoxCard({required this.box, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Index
+            Container(
+              width: 28,
+              height: 28,
+              decoration: const BoxDecoration(
+                color: AppTheme.primary,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '$index',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          box.boxNo.isNotEmpty ? box.boxNo : '-',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                      if (box.qty.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Qty: ${box.qty}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF16A34A),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      if (box.barcode.isNotEmpty)
+                        _InfoRow(
+                            icon: Icons.qr_code,
+                            label: box.barcode),
+                      if (box.newBarcode.isNotEmpty)
+                        _InfoRow(
+                            icon: Icons.qr_code_2,
+                            label: 'New: ${box.newBarcode}'),
+                      if (box.mfgDate.isNotEmpty)
+                        _InfoRow(
+                            icon: Icons.calendar_today_outlined,
+                            label: 'MFG: ${_fmtDate(box.mfgDate)}'),
+                      if (box.expDate.isNotEmpty)
+                        _InfoRow(
+                            icon: Icons.hourglass_bottom_outlined,
+                            label: 'EXP: ${_fmtDate(box.expDate)}'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _fmtDate(String raw) {
+    if (raw.length == 8) {
+      return '${raw.substring(6)}/${raw.substring(4, 6)}/${raw.substring(0, 4)}';
+    }
+    return raw;
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _InfoRow({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.grey.shade400),
+        const SizedBox(width: 4),
+        Text(label,
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+      ],
+    );
+  }
+}
+
+// ── _QtyTile ──────────────────────────────────────────────────────────────────
+
+class _QtyTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _QtyTile(
+      {required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style:
+                    TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── _SmallChip ────────────────────────────────────────────────────────────────
+
+class _SmallChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _SmallChip(
+      {required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── _InlineError ──────────────────────────────────────────────────────────────
+
+class _InlineError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _InlineError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 40, color: Colors.red.shade300),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('ลองใหม่'),
+              style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.primary),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -437,6 +437,128 @@ class ApiService {
       throw ApiException('GetPurProduct HTTP error: ${response.statusCode}');
     }
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // GET_LST_BOX — รายการกล่องทั้งหมดของ PO item
+  // ──────────────────────────────────────────────────────────────────────────
+  Future<List<LstBoxItem>> getLstBox({
+    required String company,
+    required String user,
+    required String dType,
+    required String dBook,
+    required String dNo,
+    required String dSeq,
+    required String product,
+    String key = '',
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GET_LST_BOX'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']     = company;
+    request.fields['P_USER']    = user;
+    request.fields['P_KEY']     = key;
+    request.fields['P_DTYPE']   = dType;
+    request.fields['P_DBOOK']   = dBook;
+    request.fields['P_DNO']     = dNo;
+    request.fields['P_DSEQ']    = dSeq;
+    request.fields['P_PRODUCT'] = product;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GET_LST_BOX');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    final bodyPreview = response.body.length > 500
+        ? '${response.body.substring(0, 500)}...[truncated]'
+        : response.body;
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GET_LST_BOX');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : $bodyPreview');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> items = decoded is List
+          ? decoded
+          : (decoded as Map<String, dynamic>)['result'] as List<dynamic>? ?? [];
+      return items
+          .map((e) => LstBoxItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException('GET_LST_BOX HTTP error: ${response.statusCode}');
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // GetTotBox — สรุปข้อมูล PO item (qty, hold, stock on hand ฯลฯ)
+  // ──────────────────────────────────────────────────────────────────────────
+  Future<List<TotBoxItem>> getTotBox({
+    required String company,
+    required String user,
+    required String dType,
+    required String dBook,
+    required String dNo,
+    required String dSeq,
+    required String product,
+    String key = '',
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GetTotBox'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']     = company;
+    request.fields['P_USER']    = user;
+    request.fields['P_KEY']     = key;
+    request.fields['P_DTYPE']   = dType;
+    request.fields['P_DBOOK']   = dBook;
+    request.fields['P_DNO']     = dNo;
+    request.fields['P_DSEQ']    = dSeq;
+    request.fields['P_PRODUCT'] = product;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GetTotBox');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    final bodyPreview2 = response.body.length > 500
+        ? '${response.body.substring(0, 500)}...[truncated]'
+        : response.body;
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GetTotBox');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : $bodyPreview2');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final List<dynamic> items = decoded is List
+          ? decoded
+          : (decoded as Map<String, dynamic>)['result'] as List<dynamic>? ?? [];
+      return items
+          .map((e) => TotBoxItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException('GetTotBox HTTP error: ${response.statusCode}');
+    }
+  }
 }
 
 class ApiException implements Exception {

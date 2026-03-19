@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'scan_qr_screen.dart';
 
 class PurProductScreen extends StatefulWidget {
   final ApiService apiService;
@@ -212,6 +213,8 @@ class _PurProductScreenState extends State<PurProductScreen> {
                                   _ProductCard(
                                 item: filtered[i],
                                 index: i + 1,
+                                plan: widget.plan,
+                                apiService: widget.apiService,
                               ),
                             ),
                           ),
@@ -353,7 +356,14 @@ class _Chip extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   final PurProductItem item;
   final int index;
-  const _ProductCard({required this.item, required this.index});
+  final RcvPlanDtlItem plan;
+  final ApiService apiService;
+  const _ProductCard({
+    required this.item,
+    required this.index,
+    required this.plan,
+    required this.apiService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +371,18 @@ class _ProductCard extends StatelessWidget {
         ? (item.rcvQty / item.poQty).clamp(0.0, 1.0)
         : 0.0;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScanQRScreen(
+            apiService: apiService,
+            item: item,
+            plan: plan,
+          ),
+        ),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -621,7 +642,8 @@ class _ProductCard extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ),  // Container
+    );  // GestureDetector
   }
 
   String _fmt(double v) {
