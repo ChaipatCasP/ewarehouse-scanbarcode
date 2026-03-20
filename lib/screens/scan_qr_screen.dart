@@ -92,8 +92,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       final boxes = results[0] as List<LstBoxItem>;
       final tots  = results[1] as List<TotBoxItem>;
       final firstTot = tots.isNotEmpty ? tots.first : null;
-      // ตั้งค่า BOX NUMBER = MAX_BOX + 1 (เฉพาะครั้งแรก ไม่ทับสิ่งที่ user แก้ไว้)
-      if (firstTot != null && _boxController.text.isEmpty) {
+      // ตั้งค่า BOX NUMBER = MAX_BOX + 1 ทุกครั้งที่ GetTotBox คืนค่า
+      if (firstTot != null) {
         final maxBox = int.tryParse(firstTot.maxBox) ?? 0;
         _boxController.text = (maxBox + 1).toString();
       }
@@ -951,32 +951,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                             message: _boxDataError!, onRetry: _loadBoxData)
                         : Column(
                             children: [
-                              // Qty boxes
-                              Row(
-                                children: [
-                                  _QtyTile(
-                                    label: 'PO Qty',
-                                    value: '${_fmtD(totalQty)} ${item.uom}',
-                                    color: const Color(0xFF2563EB),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _QtyTile(
-                                    label: 'Scanned',
-                                    value: '${_fmtD(scannedQty)} ${item.uom}',
-                                    color: const Color(0xFF16A34A),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _QtyTile(
-                                    label: 'Pending',
-                                    value:
-                                        '${_fmtD((totalQty - scannedQty).clamp(0, double.infinity))} ${item.uom}',
-                                    color: (totalQty - scannedQty) > 0
-                                        ? const Color(0xFFD97706)
-                                        : Colors.grey,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
+
                               // Progress bar
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -986,7 +961,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'สแกนแล้ว ${(pct * 100).toStringAsFixed(1)}%',
+                                        'Scanned ${(pct * 100).toStringAsFixed(1)}%',
                                         style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.grey.shade500),
@@ -999,7 +974,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 2),
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(4),
                                     child: LinearProgressIndicator(
@@ -1019,9 +994,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                               ),
                               // Extra info from TotBox
                               if (_totBox != null) ...[
-                                const SizedBox(height: 10),
-                                const Divider(height: 1),
-                                const SizedBox(height: 10),
+                                // const SizedBox(height: 10),
+                                // const Divider(height: 1),
+                                // const SizedBox(height: 10),
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 6,
@@ -1076,7 +1051,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                   child: TextField(
                     controller: _barcodeController,
                     decoration: InputDecoration(
-                      hintText: 'Scan หรือพิมพ์ Barcode',
+                      hintText: 'Scan Or Enter Barcode',
                       hintStyle: TextStyle(
                           color: Colors.grey.shade400, fontSize: 13),
                       filled: true,
@@ -1337,7 +1312,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                     size: 16, color: AppTheme.primary),
                 const SizedBox(width: 6),
                 const Text(
-                  'รายการ Box ที่สแกนแล้ว',
+                  'Scanned Box List',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,

@@ -130,7 +130,7 @@ class _PurProductScreenState extends State<PurProductScreen> {
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'ค้นหา รหัสสินค้า, ชื่อ, Barcode...',
+                  hintText: 'Search by product code, name, Barcode...',
                   hintStyle: TextStyle(
                       color: Colors.grey.shade500, fontSize: 13),
                   prefixIcon: Icon(Icons.search,
@@ -171,7 +171,7 @@ class _PurProductScreenState extends State<PurProductScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${filtered.length} รายการ',
+                      '${filtered.length} items',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -287,12 +287,12 @@ class _PlanSummaryBanner extends StatelessWidget {
                   label: plan.shipmentName1,
                   color: Colors.grey.shade600,
                 ),
-              if (plan.containerNo.isNotEmpty)
-                _Chip(
-                  icon: Icons.inventory_2_outlined,
-                  label: plan.containerNo,
-                  color: Colors.grey.shade600,
-                ),
+              // if (plan.containerNo.isNotEmpty)
+              //   _Chip(
+              //     icon: Icons.inventory_2_outlined,
+              //     label: plan.containerNo,
+              //     color: Colors.grey.shade600,
+              //   ),
             ],
           ),
         ],
@@ -443,8 +443,8 @@ class _ProductCard extends StatelessWidget {
                   ),
                 ),
                 // Line badge
-                if (item.poLine.isNotEmpty)
-                  _LineBadge('Line ${item.poLine}'),
+                // if (item.poLine.isNotEmpty)
+                //   _LineBadge('Line ${item.poLine}'),
               ],
             ),
           ),
@@ -505,40 +505,40 @@ class _ProductCard extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 // Progress bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'รับแล้ว ${(pctReceived * 100).toStringAsFixed(1)}%',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade500),
-                        ),
-                        Text(
-                          '${_fmt(item.rcvQty)} / ${_fmt(item.poQty)}',
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade500),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: pctReceived,
-                        minHeight: 6,
-                        backgroundColor: const Color(0xFFE2E8F0),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          pctReceived >= 1.0
-                              ? const Color(0xFF16A34A)
-                              : AppTheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                // Column(
+                //   crossAxisAlignment: CrossAxisAlignment.start,
+                //   children: [
+                //     Row(
+                //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //       children: [
+                //         Text(
+                //           'รับแล้ว ${(pctReceived * 100).toStringAsFixed(1)}%',
+                //           style: TextStyle(
+                //               fontSize: 11, color: Colors.grey.shade500),
+                //         ),
+                //         Text(
+                //           '${_fmt(item.rcvQty)} / ${_fmt(item.poQty)}',
+                //           style: TextStyle(
+                //               fontSize: 11, color: Colors.grey.shade500),
+                //         ),
+                //       ],
+                //     ),
+                //     const SizedBox(height: 4),
+                //     ClipRRect(
+                //       borderRadius: BorderRadius.circular(4),
+                //       child: LinearProgressIndicator(
+                //         value: pctReceived,
+                //         minHeight: 6,
+                //         backgroundColor: const Color(0xFFE2E8F0),
+                //         valueColor: AlwaysStoppedAnimation<Color>(
+                //           pctReceived >= 1.0
+                //               ? const Color(0xFF16A34A)
+                //               : AppTheme.primary,
+                //         ),
+                //       ),
+                //     ),
+                //   ],
+                // ),
 
                 // Optional fields
                 if (item.barcode.isNotEmpty ||
@@ -810,13 +810,13 @@ class _EmptyView extends StatelessWidget {
             Icon(Icons.inventory_2_outlined,
                 size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
-            Text('ไม่พบรายการสินค้า',
+            Text('Not Found',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.grey.shade500)),
             const SizedBox(height: 6),
-            Text('PO $poNo ไม่มีรายการสินค้าในระบบ',
+            Text('PO $poNo has no products in the system',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 13, color: Colors.grey.shade400)),

@@ -168,12 +168,12 @@ class _OtpScreenState extends State<OtpScreen> {
     final newRef = OtpScreen.generateRefCode();
 
     try {
-      await widget.apiService.sendOtpToLine(
-        user: widget.username,
-        staffCode: widget.staffCode,
-        otp: newOtp,
-        refCode: newRef,
-      );
+      // await widget.apiService.sendOtpToLine(
+      //   user: widget.username,
+      //   staffCode: widget.staffCode,
+      //   otp: newOtp,
+      //   refCode: newRef,
+      // );
       if (!mounted) return;
       setState(() {
         _otp = newOtp;

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'psl_product_screen.dart';
 import 'pur_product_screen.dart';
 
 class RcvPlanListScreen extends StatefulWidget {
@@ -15,7 +16,11 @@ class RcvPlanListScreen extends StatefulWidget {
 }
 
 class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
+  // ── PO / PE list ─────────────────────────────────────────────────────────
   List<RcvPlanDtlItem> _items = [];
+  // ── PSL list ──────────────────────────────────────────────────────────────
+  List<LstDocInboundItem> _pslItems = [];
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -24,12 +29,14 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
   String _selectedType = 'PO';
   final _searchController = TextEditingController();
 
-  static const List<String> _types = ['PO', 'PE'];
+  static const List<String> _types = ['PO', 'PE', 'PSL'];
+
+  bool get _isPsl => _selectedType == 'PSL';
 
   // ── Formatted date for API (YYYYMMDD) ────────────────────────────────────
   String get _apiDate => DateFormat('yyyyMMdd').format(_selectedDate);
 
-  // ── Filtered list based on search text ──────────────────────────────────
+  // ── Filtered PO/PE list ──────────────────────────────────────────────────
   List<RcvPlanDtlItem> get _filtered {
     final q = _searchController.text.trim().toLowerCase();
     if (q.isEmpty) return _items;
@@ -40,6 +47,20 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
           e.keepName.toLowerCase().contains(q);
     }).toList();
   }
+
+  // ── Filtered PSL list ────────────────────────────────────────────────────
+  List<LstDocInboundItem> get _filteredPsl {
+    final q = _searchController.text.trim().toLowerCase();
+    if (q.isEmpty) return _pslItems;
+    return _pslItems.where((e) {
+      return e.fullPslNo.toLowerCase().contains(q) ||
+          e.fullRpNo.toLowerCase().contains(q) ||
+          e.supName.toLowerCase().contains(q) ||
+          e.transactionType.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  int get _filteredCount => _isPsl ? _filteredPsl.length : _filtered.length;
 
   @override
   void initState() {
@@ -60,18 +81,32 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
     });
 
     try {
-      final result = await widget.apiService.getRcvPlanDtl(
-        company: widget.apiService.company,
-        user: widget.apiService.username,
-        type: _selectedType == 'ALL' ? '' : _selectedType,
-        date: _apiDate,
-        page: 1,
-      );
-      if (!mounted) return;
-      setState(() {
-        _items = result.items;
-        _isLoading = false;
-      });
+      if (_isPsl) {
+        // ── PSL: call GET_LST_DOC_INBOUND ─────────────────────────────
+        final result = await widget.apiService.getLstDocInbound(
+          company: widget.apiService.company,
+          user: widget.apiService.username,
+        );
+        if (!mounted) return;
+        setState(() {
+          _pslItems = result;
+          _isLoading = false;
+        });
+      } else {
+        // ── PO / PE: call GetRcvPlanDtl ───────────────────────────────
+        final result = await widget.apiService.getRcvPlanDtl(
+          company: widget.apiService.company,
+          user: widget.apiService.username,
+          type: _selectedType,
+          date: _apiDate,
+          page: 1,
+        );
+        if (!mounted) return;
+        setState(() {
+          _items = result.items;
+          _isLoading = false;
+        });
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -93,12 +128,13 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
-        ),
-        child: child!,
-      ),
+      builder:
+          (context, child) => Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(primary: AppTheme.primary),
+            ),
+            child: child!,
+          ),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);
@@ -108,8 +144,6 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filtered;
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
@@ -143,33 +177,45 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             child: Row(
               children: [
-                // Date picker button
+                // Date picker — แสดงเสมอ แต่ disable เมื่อเลือก PSL
                 Expanded(
-                  child: GestureDetector(
-                    onTap: _pickDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppTheme.primary.withValues(alpha: 0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today,
-                              size: 16, color: AppTheme.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(_selectedDate),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.primary,
+                  child: Opacity(
+                    opacity: _isPsl ? 0.38 : 1.0,
+                    child: IgnorePointer(
+                      ignoring: _isPsl,
+                      child: GestureDetector(
+                        onTap: _pickDate,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppTheme.primary.withValues(alpha: 0.2),
                             ),
                           ),
-                        ],
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 16,
+                                color: AppTheme.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                DateFormat('dd MMM yyyy').format(_selectedDate),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -182,7 +228,8 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
                     color: AppTheme.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppTheme.primary.withValues(alpha: 0.2)),
+                      color: AppTheme.primary.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
@@ -192,15 +239,25 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primary,
                       ),
-                      icon: const Icon(Icons.keyboard_arrow_down,
-                          color: AppTheme.primary, size: 18),
-                      items: _types
-                          .map((t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(t,
-                                  style: const TextStyle(
-                                      color: AppTheme.primary))))
-                          .toList(),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppTheme.primary,
+                        size: 18,
+                      ),
+                      items:
+                          _types
+                              .map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(
+                                    t,
+                                    style: const TextStyle(
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (v) {
                         if (v != null) {
                           setState(() => _selectedType = v);
@@ -228,21 +285,33 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'ค้นหา PO, Supplier, Container...',
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                  prefixIcon:
-                      Icon(Icons.search, color: Colors.grey.shade500, size: 20),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear,
-                              size: 18, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
+                  hintText:
+                      _isPsl
+                          ? 'Search PSL, Supplier, RP...'
+                          : 'Search PO, Supplier, Container...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 13,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey.shade500,
+                    size: 20,
+                  ),
+                  suffixIcon:
+                      _searchController.text.isNotEmpty
+                          ? IconButton(
+                            icon: const Icon(
+                              Icons.clear,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                          : null,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -257,19 +326,20 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
           if (!_isLoading && _errorMessage == null)
             Container(
               color: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${filtered.length} รายการ',
+                      '$_filteredCount items',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -278,11 +348,23 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedDate),
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade500),
-                  ),
+                  if (!_isPsl)
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(_selectedDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    )
+                  else
+                    Text(
+                      'PSL Inbound',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -290,37 +372,222 @@ class _RcvPlanListScreenState extends State<RcvPlanListScreen> {
 
           // ── Content ───────────────────────────────────────────────────
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                        color: AppTheme.primary))
-                : _errorMessage != null
-                    ? _ErrorView(
-                        message: _errorMessage!,
-                        onRetry: _load,
-                      )
-                    : filtered.isEmpty
-                        ? _EmptyView(date: _selectedDate)
-                        : RefreshIndicator(
-                            onRefresh: _load,
-                            color: AppTheme.primary,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, i) => _RcvPlanCard(
-                                item: filtered[i],
-                                apiService: widget.apiService,
-                              ),
-                            ),
-                          ),
+            child:
+                _isLoading
+                    ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    )
+                    : _errorMessage != null
+                    ? _ErrorView(message: _errorMessage!, onRetry: _load)
+                    : _isPsl
+                    ? _buildPslList()
+                    : _buildPopeList(),
           ),
         ],
       ),
     );
   }
+
+  // ── PSL ListView ──────────────────────────────────────────────────────────
+  Widget _buildPslList() {
+    final list = _filteredPsl;
+    if (list.isEmpty) {
+      return _EmptyView(date: _selectedDate, isPsl: true);
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppTheme.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        itemBuilder:
+            (context, i) => _LstDocInboundCard(
+              item: list[i],
+              apiService: widget.apiService,
+            ),
+      ),
+    );
+  }
+
+  // ── PO/PE ListView ────────────────────────────────────────────────────────
+  Widget _buildPopeList() {
+    final list = _filtered;
+    if (list.isEmpty) {
+      return _EmptyView(date: _selectedDate, isPsl: false);
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: AppTheme.primary,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        itemBuilder:
+            (context, i) =>
+                _RcvPlanCard(item: list[i], apiService: widget.apiService),
+      ),
+    );
+  }
 }
 
-// ── Card ──────────────────────────────────────────────────────────────────────
+// ── PSL Card ──────────────────────────────────────────────────────────────────
+
+class _LstDocInboundCard extends StatelessWidget {
+  final LstDocInboundItem item;
+  final ApiService apiService;
+  const _LstDocInboundCard({required this.item, required this.apiService});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PslProductScreen(apiService: apiService, psl: item),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // ── Header ────────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.05),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
+                border: const Border(
+                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    item.fullPslNo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF7C3AED),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _Badge(
+                    label: item.transactionType,
+                    color: const Color(0xFF7C3AED),
+                  ),
+                  const Spacer(),
+                  _Badge(label: 'PSL', color: const Color(0xFFF59E0B)),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Colors.grey.shade400,
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Body ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoRow(
+                    icon: Icons.business_outlined,
+                    label: 'Supplier',
+                    value: item.supName,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.event_outlined,
+                          label: 'Doc Date',
+                          value: LstDocInboundItem.fmtDate(item.docDate),
+                        ),
+                      ),
+                      Expanded(
+                        child: _InfoRow(
+                          icon: Icons.warehouse_outlined,
+                          label: 'WH Receive',
+                          value: LstDocInboundItem.fmtDate(item.whRecDate),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Ref. Doc (RP)',
+                    value: item.fullRpNo,
+                  ),
+                  if (item.contact.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _InfoRow(
+                      icon: Icons.person_outline,
+                      label: 'Contact',
+                      value: item.contact,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Footer ────────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(14),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 14,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    item.fullPslNo,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                  const Spacer(),
+                  Text(
+                    item.company,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── PO/PE Card ────────────────────────────────────────────────────────────────
 
 class _RcvPlanCard extends StatelessWidget {
   final RcvPlanDtlItem item;
@@ -330,15 +597,14 @@ class _RcvPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PurProductScreen(
-            apiService: apiService,
-            plan: item,
+      onTap:
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => PurProductScreen(apiService: apiService, plan: item),
+            ),
           ),
-        ),
-      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -357,14 +623,15 @@ class _RcvPlanCard extends StatelessWidget {
           children: [
             // ── Header strip ──────────────────────────────────────────
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withValues(alpha: 0.05),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(14)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
                 border: const Border(
-                    bottom: BorderSide(color: Color(0xFFE2E8F0))),
+                  bottom: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
               ),
               child: Row(
                 children: [
@@ -385,15 +652,18 @@ class _RcvPlanCard extends StatelessWidget {
                   const Spacer(),
                   if (item.isHold)
                     const _Badge(label: 'HOLD', color: Colors.red),
-                  _Badge(
-                    label: item.isActive ? 'Active' : item.status,
-                    color: item.isActive
-                        ? const Color(0xFF16A34A)
-                        : Colors.grey,
-                  ),
+                  // _Badge(
+                  //   label: item.isActive ? 'Active' : item.status,
+                  //   color: item.isActive
+                  //       ? const Color(0xFF16A34A)
+                  //       : Colors.grey,
+                  // ),
                   const SizedBox(width: 4),
-                  Icon(Icons.chevron_right,
-                      size: 18, color: Colors.grey.shade400),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Colors.grey.shade400,
+                  ),
                 ],
               ),
             ),
@@ -408,25 +678,20 @@ class _RcvPlanCard extends StatelessWidget {
                     icon: Icons.business_outlined,
                     label: 'Supplier',
                     value: item.supName,
-                    subValue: item.supCountry.isNotEmpty
-                        ? '🌍 ${item.supCountry}'
-                        : null,
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    icon: Icons.thermostat_outlined,
-                    label: 'Storage',
-                    value: item.keepName,
-                    valueColor: _keepColor(item.keepCode),
+                    subValue:
+                        item.supCountry.isNotEmpty
+                            ? '🌍 ${item.supCountry}'
+                            : null,
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: _InfoRow(
-                          icon: Icons.event_outlined,
-                          label: 'Delivery',
-                          value: _formatDate(item.deliveryDate),
+                          icon: Icons.thermostat_outlined,
+                          label: 'Storage',
+                          value: item.keepName,
+                          valueColor: _keepColor(item.keepCode),
                         ),
                       ),
                       Expanded(
@@ -443,76 +708,68 @@ class _RcvPlanCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _InfoRow(
-                          icon: Icons.inventory_2_outlined,
-                          label: 'Container',
-                          value: item.containerNo.isNotEmpty
-                              ? item.containerNo
-                              : '-',
+                          icon: Icons.event_outlined,
+                          label: 'Delivery',
+                          value: _formatDate(item.deliveryDate),
                         ),
                       ),
                       Expanded(
                         child: _InfoRow(
                           icon: Icons.flight_takeoff_outlined,
                           label: 'Shipment',
-                          value: item.shipmentName1.isNotEmpty
-                              ? item.shipmentName1
-                              : '-',
+                          value:
+                              item.shipmentName1.isNotEmpty
+                                  ? item.shipmentName1
+                                  : '-',
                         ),
                       ),
                     ],
                   ),
-                  if (item.shipperSupName.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _InfoRow(
-                      icon: Icons.local_shipping_outlined,
-                      label: 'Shipper',
-                      value: item.shipperSupName,
-                    ),
-                  ],
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
 
             // ── Footer ────────────────────────────────────────────────
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: const BoxDecoration(
-                border:
-                    Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-                borderRadius:
-                    BorderRadius.vertical(bottom: Radius.circular(14)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.low_priority,
-                      size: 14, color: Colors.grey.shade400),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Priority ${item.priority}',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(Icons.format_list_numbered,
-                      size: 14, color: Colors.grey.shade400),
-                  const SizedBox(width: 4),
-                  Text(
-                    'SEQ ${item.seq}',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade500),
-                  ),
-                  const Spacer(),
-                  Text(
-                    item.wareCode.isNotEmpty && item.wareCode != '-'
-                        ? item.wareCode
-                        : '',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade400),
-                  ),
-                ],
-              ),
-            ),
+            // Container(
+            //   padding:
+            //       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            //   decoration: const BoxDecoration(
+            //     border:
+            //         Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            //     borderRadius:
+            //         BorderRadius.vertical(bottom: Radius.circular(14)),
+            //   ),
+            //   child: Row(
+            //     children: [
+            //       Icon(Icons.low_priority,
+            //           size: 14, color: Colors.grey.shade400),
+            //       const SizedBox(width: 4),
+            //       Text(
+            //         'Priority ${item.priority}',
+            //         style: TextStyle(
+            //             fontSize: 11, color: Colors.grey.shade500),
+            //       ),
+            //       const SizedBox(width: 12),
+            //       Icon(Icons.format_list_numbered,
+            //           size: 14, color: Colors.grey.shade400),
+            //       const SizedBox(width: 4),
+            //       Text(
+            //         'SEQ ${item.seq}',
+            //         style: TextStyle(
+            //             fontSize: 11, color: Colors.grey.shade500),
+            //       ),
+            //       const Spacer(),
+            //       Text(
+            //         item.wareCode.isNotEmpty && item.wareCode != '-'
+            //             ? item.wareCode
+            //             : '',
+            //         style: TextStyle(
+            //             fontSize: 11, color: Colors.grey.shade400),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -636,15 +893,15 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 56, color: Colors.red.shade300),
+            Icon(Icons.error_outline, size: 56, color: Colors.red.shade300),
             const SizedBox(height: 16),
             Text(
               'เกิดข้อผิดพลาด',
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.red.shade400),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.red.shade400,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -662,7 +919,8 @@ class _ErrorView extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(140, 44),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -674,7 +932,8 @@ class _ErrorView extends StatelessWidget {
 
 class _EmptyView extends StatelessWidget {
   final DateTime date;
-  const _EmptyView({required this.date});
+  final bool isPsl;
+  const _EmptyView({required this.date, this.isPsl = false});
 
   @override
   Widget build(BuildContext context) {
@@ -684,19 +943,21 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inbox_outlined,
-                size: 64, color: Colors.grey.shade300),
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               'ไม่พบข้อมูล',
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.grey.shade500),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey.shade500,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
-              'ไม่มีรายการสำหรับวันที่\n${DateFormat('dd MMMM yyyy').format(date)}',
+              isPsl
+                  ? 'ไม่มีรายการ PSL สำหรับวันที่\n${DateFormat('dd MMMM yyyy').format(date)}'
+                  : 'ไม่มีรายการสำหรับวันที่\n${DateFormat('dd MMMM yyyy').format(date)}',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
             ),
@@ -706,4 +967,3 @@ class _EmptyView extends StatelessWidget {
     );
   }
 }
-

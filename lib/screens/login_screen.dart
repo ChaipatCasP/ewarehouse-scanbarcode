@@ -62,12 +62,12 @@ class _LoginScreenState extends State<LoginScreen> {
           : (result.staffCode.isNotEmpty ? result.staffCode : username);
 
       // ── Step 4: Send OTP via LINE ─────────────────────────────────────
-      await _apiService.sendOtpToLine(
-        user: username,
-        staffCode: staffCode,
-        otp: otp,
-        refCode: refCode,
-      );
+      // await _apiService.sendOtpToLine(
+      //   user: username,
+      //   staffCode: staffCode,
+      //   otp: otp,
+      //   refCode: refCode,
+      // );
 
       if (!mounted) return;
 

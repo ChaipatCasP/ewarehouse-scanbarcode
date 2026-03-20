@@ -660,6 +660,185 @@ class ApiService {
     }
   }
 
+  // ── GET_LST_DOC_INB_DTL (PSL Product Detail) ─────────────────────────────
+
+  /// POST /Apip/WsEwarehouse/GET_LST_DOC_INB_DTL
+  ///
+  /// ดึงรายการสินค้า/Reprocess ของเอกสาร PSL Inbound
+  ///
+  /// Parameters:
+  /// - [company] : รหัสบริษัท เช่น "JB"
+  /// - [user]    : username
+  /// - [key]     : keyword ค้นหา (optional)
+  /// - [dType]   : TRANSACTION_TYPE เช่น "RO"
+  /// - [dBook]   : RP_BOOK_NO เช่น "RO69"
+  /// - [dNo]     : RP_NO เช่น "226"
+  Future<List<LstDocInbDtlItem>> getLstDocInbDtl({
+    required String company,
+    required String user,
+    String key = '',
+    required String dType,
+    required String dBook,
+    required String dNo,
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GET_LST_DOC_INB_DTL'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']   = company;
+    request.fields['P_USER']  = user;
+    request.fields['P_KEY']   = key;
+    request.fields['P_DTYPE'] = dType;
+    request.fields['P_DBOOK'] = dBook;
+    request.fields['P_DNO']   = dNo;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GET_LST_DOC_INB_DTL');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('├── Headers ──────────────────────────────────');
+    headers.forEach((k, v) {
+      final display =
+          v.length > 20 ? '${v.substring(0, 20)}...[truncated]' : v;
+      debugPrint('│ $k: $display');
+    });
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GET_LST_DOC_INB_DTL');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint(
+        '│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is List) {
+        return decoded
+            .map((e) =>
+                LstDocInbDtlItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      final data = decoded as Map<String, dynamic>;
+      if (data['jwt'] == 0) {
+        throw ApiException(
+            data['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (data['flag'] != null && data['flag'].toString() != '1') {
+        final results = data['result'] as List<dynamic>?;
+        final msg = results != null && results.isNotEmpty
+            ? (results.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : data['message'] as String? ?? '';
+        throw ApiException(
+            msg.isNotEmpty ? msg : 'GET_LST_DOC_INB_DTL failed (flag≠1)');
+      }
+
+      final rawItems = data['result'] as List<dynamic>? ?? [];
+      return rawItems
+          .map((e) =>
+              LstDocInbDtlItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException(
+          'GET_LST_DOC_INB_DTL HTTP error: ${response.statusCode}');
+    }
+  }
+
+  // ── GET_LST_DOC_INBOUND (PSL) ─────────────────────────────────────────────
+
+  /// POST /Apip/WsEwarehouse/GET_LST_DOC_INBOUND
+  ///
+  /// ดึงรายการเอกสาร Inbound ประเภท PSL
+  ///
+  /// Parameters:
+  /// - [company] : รหัสบริษัท เช่น "JB"
+  /// - [user]    : username
+  /// - [key]     : keyword ค้นหา (optional)
+  Future<List<LstDocInboundItem>> getLstDocInbound({
+    required String company,
+    required String user,
+    String key = '',
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/GET_LST_DOC_INBOUND'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_COM']  = company;
+    request.fields['P_USER'] = user;
+    request.fields['P_KEY']  = key;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: GET_LST_DOC_INBOUND');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('│ Method : ${request.method}');
+    debugPrint('├── Headers ──────────────────────────────────');
+    headers.forEach((k, v) {
+      final display =
+          v.length > 20 ? '${v.substring(0, 20)}...[truncated]' : v;
+      debugPrint('│ $k: $display');
+    });
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: GET_LST_DOC_INBOUND');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+
+      // Response อาจเป็น List โดยตรง หรือ Map ที่มี result
+      if (decoded is List) {
+        return decoded
+            .map((e) =>
+                LstDocInboundItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+
+      final data = decoded as Map<String, dynamic>;
+      if (data['jwt'] == 0) {
+        throw ApiException(
+            data['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (data['flag'] != null && data['flag'].toString() != '1') {
+        final results = data['result'] as List<dynamic>?;
+        final msg = results != null && results.isNotEmpty
+            ? (results.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : data['message'] as String? ?? '';
+        throw ApiException(
+            msg.isNotEmpty ? msg : 'GET_LST_DOC_INBOUND failed (flag≠1)');
+      }
+
+      final rawItems =
+          data['result'] as List<dynamic>? ?? [];
+      return rawItems
+          .map((e) =>
+              LstDocInboundItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw ApiException(
+          'GET_LST_DOC_INBOUND HTTP error: ${response.statusCode}');
+    }
+  }
+
   // ── SEND_OTP_TO_LINE ──────────────────────────────────────────────────────
 
   /// POST /Apip/WsEwarehouse/SEND_OTP_TO_LINE

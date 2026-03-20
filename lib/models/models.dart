@@ -730,3 +730,175 @@ class SetStickerBoxResult {
 
   Map<String, dynamic> toJson() => raw;
 }
+
+// ─── GET_LST_DOC_INBOUND (PSL) ────────────────────────────────────────────────
+
+class LstDocInboundItem {
+  final String flag;            // FLAG
+  final String company;         // COMPANY
+  final String transactionType; // TRANSACTION_TYPE
+  final String rpBookNo;        // RP_BOOK_NO
+  final String rpNo;            // RP_NO
+  final String docDate;         // DOC_DATE  (YYYYMMDD)
+  final String supCode;         // SUP_CODE
+  final String supName;         // SUP_NAME
+  final String contact;         // CONTACT
+  final String whRecDate;       // WH_REC_DATE (YYYYMMDD)
+  final String pslBook;         // PSL_BOOK
+  final String pslNo;           // PSL_NO
+  final Map<String, dynamic> raw;
+
+  LstDocInboundItem({
+    required this.flag,
+    required this.company,
+    required this.transactionType,
+    required this.rpBookNo,
+    required this.rpNo,
+    required this.docDate,
+    required this.supCode,
+    required this.supName,
+    required this.contact,
+    required this.whRecDate,
+    required this.pslBook,
+    required this.pslNo,
+    required this.raw,
+  });
+
+  static String _s(Map<String, dynamic> j, String k) =>
+      j[k]?.toString() ?? '';
+
+  factory LstDocInboundItem.fromJson(Map<String, dynamic> json) {
+    return LstDocInboundItem(
+      flag:            _s(json, 'FLAG'),
+      company:         _s(json, 'COMPANY'),
+      transactionType: _s(json, 'TRANSACTION_TYPE'),
+      rpBookNo:        _s(json, 'RP_BOOK_NO'),
+      rpNo:            _s(json, 'RP_NO'),
+      docDate:         _s(json, 'DOC_DATE'),
+      supCode:         _s(json, 'SUP_CODE'),
+      supName:         _s(json, 'SUP_NAME'),
+      contact:         _s(json, 'CONTACT'),
+      whRecDate:       _s(json, 'WH_REC_DATE'),
+      pslBook:         _s(json, 'PSL_BOOK'),
+      pslNo:           _s(json, 'PSL_NO'),
+      raw:             json,
+    );
+  }
+
+  /// PSL เลขเต็ม เช่น "PSL69/618"
+  String get fullPslNo =>
+      pslBook.isNotEmpty ? '$pslBook/$pslNo' : pslNo;
+
+  /// RP เลขเต็ม เช่น "RO69/226"
+  String get fullRpNo =>
+      rpBookNo.isNotEmpty ? '$rpBookNo/$rpNo' : rpNo;
+
+  /// แปลงวันที่ YYYYMMDD → DD/MM/YYYY
+  static String fmtDate(String raw) {
+    if (raw.length == 8) {
+      return '${raw.substring(6, 8)}/${raw.substring(4, 6)}/${raw.substring(0, 4)}';
+    }
+    return raw;
+  }
+
+  Map<String, dynamic> toJson() => raw;
+}
+
+// ─── GET_LST_DOC_INB_DTL (PSL Product Detail) ─────────────────────────────────
+
+class LstDocInbDtlItem {
+  final String company;         // COMPANY
+  final String transactionType; // TRANSACTION_TYPE
+  final String rpBookNo;        // RP_BOOK_NO
+  final String rpNo;            // RP_NO
+  final String docDate;         // DOC_DATE  (YYYYMMDD)
+  final String supCode;         // SUP_CODE
+  final String supName;         // SUP_NAME
+  final String contact;         // CONTACT
+  final String whRecDate;       // WH_REC_DATE (YYYYMMDD)
+  final String seq;             // SEQ
+  final String subSeq;          // SUB_SEQ
+  final String productCode;     // PRODUCT_CODE  (source/input product)
+  final String productName;     // PRODUCT_NAME
+  final String reprocessCode;   // REPROCESS_CODE (output product)
+  final String reprocessName;   // REPROCESS_NAME
+  final String serviceCode;     // SERVICE_CODE
+  final String serviceName;     // SERVICE_NAME
+  final String qtyAvl;          // QTY_AVL (available qty)
+  final String qty;             // QTY
+  final String unit;            // UNIT
+  final Map<String, dynamic> raw;
+
+  LstDocInbDtlItem({
+    required this.company,
+    required this.transactionType,
+    required this.rpBookNo,
+    required this.rpNo,
+    required this.docDate,
+    required this.supCode,
+    required this.supName,
+    required this.contact,
+    required this.whRecDate,
+    required this.seq,
+    required this.subSeq,
+    required this.productCode,
+    required this.productName,
+    required this.reprocessCode,
+    required this.reprocessName,
+    required this.serviceCode,
+    required this.serviceName,
+    required this.qtyAvl,
+    required this.qty,
+    required this.unit,
+    required this.raw,
+  });
+
+  static String _s(Map<String, dynamic> j, String k) =>
+      j[k]?.toString() ?? '';
+
+  factory LstDocInbDtlItem.fromJson(Map<String, dynamic> json) {
+    return LstDocInbDtlItem(
+      company:         _s(json, 'COMPANY'),
+      transactionType: _s(json, 'TRANSACTION_TYPE'),
+      rpBookNo:        _s(json, 'RP_BOOK_NO'),
+      rpNo:            _s(json, 'RP_NO'),
+      docDate:         _s(json, 'DOC_DATE'),
+      supCode:         _s(json, 'SUP_CODE'),
+      supName:         _s(json, 'SUP_NAME'),
+      contact:         _s(json, 'CONTACT'),
+      whRecDate:       _s(json, 'WH_REC_DATE'),
+      seq:             _s(json, 'SEQ'),
+      subSeq:          _s(json, 'SUB_SEQ'),
+      productCode:     _s(json, 'PRODUCT_CODE'),
+      productName:     _s(json, 'PRODUCT_NAME'),
+      reprocessCode:   _s(json, 'REPROCESS_CODE'),
+      reprocessName:   _s(json, 'REPROCESS_NAME'),
+      serviceCode:     _s(json, 'SERVICE_CODE'),
+      serviceName:     _s(json, 'SERVICE_NAME'),
+      qtyAvl:          _s(json, 'QTY_AVL'),
+      qty:             _s(json, 'QTY'),
+      unit:            _s(json, 'UNIT'),
+      raw:             json,
+    );
+  }
+
+  /// SEQ-SUB_SEQ เช่น "1-1"
+  String get seqLabel =>
+      subSeq.isNotEmpty ? '$seq-$subSeq' : seq;
+
+  /// RP เลขเต็ม เช่น "RO69/226"
+  String get fullRpNo =>
+      rpBookNo.isNotEmpty ? '$rpBookNo/$rpNo' : rpNo;
+
+  double get qtyAvlValue => double.tryParse(qtyAvl) ?? 0.0;
+
+  /// แปลงวันที่ YYYYMMDD → DD/MM/YYYY
+  static String fmtDate(String raw) {
+    if (raw.length == 8) {
+      return '${raw.substring(6, 8)}/${raw.substring(4, 6)}/${raw.substring(0, 4)}';
+    }
+    return raw;
+  }
+
+  Map<String, dynamic> toJson() => raw;
+}
