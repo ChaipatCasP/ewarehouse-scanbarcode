@@ -70,7 +70,10 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     try {
       final results = await Future.wait([
         widget.apiService.getLstBox(
-          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          company:
+              item.company.isNotEmpty
+                  ? item.company
+                  : widget.apiService.company,
           user: widget.apiService.username,
           dType: plan.transactionType,
           dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
@@ -79,7 +82,10 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           product: item.matCode,
         ),
         widget.apiService.getTotBox(
-          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          company:
+              item.company.isNotEmpty
+                  ? item.company
+                  : widget.apiService.company,
           user: widget.apiService.username,
           dType: plan.transactionType,
           dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
@@ -90,7 +96,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       ]);
       if (!mounted) return;
       final boxes = results[0] as List<LstBoxItem>;
-      final tots  = results[1] as List<TotBoxItem>;
+      final tots = results[1] as List<TotBoxItem>;
       final firstTot = tots.isNotEmpty ? tots.first : null;
       // ตั้งค่า BOX NUMBER = MAX_BOX + 1 ทุกครั้งที่ GetTotBox คืนค่า
       if (firstTot != null) {
@@ -99,7 +105,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       }
       setState(() {
         _boxList = boxes;
-        _totBox  = firstTot;
+        _totBox = firstTot;
         _loadingBoxData = false;
       });
     } catch (e) {
@@ -125,7 +131,10 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         final item = widget.item!;
         final plan = widget.plan!;
         final result = await widget.apiService.setStickerBox(
-          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          company:
+              item.company.isNotEmpty
+                  ? item.company
+                  : widget.apiService.company,
           user: widget.apiService.username,
           dType: plan.transactionType,
           dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
@@ -154,8 +163,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -177,9 +187,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
     final boxNumber = _boxController.text.trim();
     if (boxNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter box number')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter box number')));
       return;
     }
 
@@ -191,12 +201,15 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         final plan = widget.plan!;
         final dateFmt = DateFormat('yyyyMMdd');
         final result = await widget.apiService.setStickerBox(
-          company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+          company:
+              item.company.isNotEmpty
+                  ? item.company
+                  : widget.apiService.company,
           user: widget.apiService.username,
           dType: plan.transactionType,
           dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
           dNo: item.poNo.isNotEmpty ? item.poNo : plan.poNo,
-          dSeq:item.poLine,
+          dSeq: item.poLine,
           product: item.matCode,
           box: boxNumber,
           barSup: '',
@@ -226,17 +239,18 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _handleReprint() async {
     final boxNumber = _boxController.text.trim();
     if (boxNumber.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter box number')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter box number')));
       return;
     }
 
@@ -245,7 +259,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() => _isLoading = true);
     try {
       final result = await widget.apiService.setStickerBox(
-        company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+        company:
+            item.company.isNotEmpty ? item.company : widget.apiService.company,
         user: widget.apiService.username,
         dType: plan.transactionType,
         dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
@@ -262,12 +277,16 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  void _showStickerResultDialog(SetStickerBoxResult result, [String weight = '']) {
+  void _showStickerResultDialog(
+    SetStickerBoxResult result, [
+    String weight = '',
+  ]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -277,8 +296,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     _autoPrintLabel(result, weight);
     // Brother BLE auto-print (only if saved device is configured)
     if (_brotherBLE.savedDeviceId.isNotEmpty) {
-      final boxNo = result.boxNo.isNotEmpty ? result.boxNo : _boxController.text.trim();
-      final w     = weight.isNotEmpty ? weight : result.qty;
+      final boxNo =
+          result.boxNo.isNotEmpty ? result.boxNo : _boxController.text.trim();
+      final w = weight.isNotEmpty ? weight : result.qty;
       _autoPrintBrother(boxNo, w);
     }
   }
@@ -304,25 +324,29 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => _BrotherConnectSheet(
-        brotherBLE: _brotherBLE,
-        onConnected: (name) {
-          if (!mounted) return;
-          setState(() => _brotherName = name);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ Brother เชื่อมต่อแล้ว — $name'),
-              backgroundColor: const Color(0xFF16A34A),
-            ),
-          );
-        },
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder:
+          (ctx) => _BrotherConnectSheet(
+            brotherBLE: _brotherBLE,
+            onConnected: (name) {
+              if (!mounted) return;
+              setState(() => _brotherName = name);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ Brother เชื่อมต่อแล้ว — $name'),
+                  backgroundColor: const Color(0xFF16A34A),
+                ),
+              );
+            },
+          ),
     );
   }
 
   Future<void> _autoPrintLabel(
-      SetStickerBoxResult result, String weight) async {
+    SetStickerBoxResult result,
+    String weight,
+  ) async {
     final connected = await _btPrinter.isConnected;
     if (!connected) return;
     final expDateFmt = SetStickerBoxResult.fmtDate(result.expDate);
@@ -364,9 +388,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     final enabled = await _btPrinter.isBluetoothEnabled;
     if (!enabled) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเปิด Bluetooth ก่อน')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('กรุณาเปิด Bluetooth ก่อน')));
       return;
     }
     final devices = await _btPrinter.getPairedDevices();
@@ -374,8 +398,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     if (devices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'ไม่พบเครื่องปริ้น — จัดคู่เครื่อง Bluetooth ก่อน')),
+          content: Text('ไม่พบเครื่องปริ้น — จัดคู่เครื่อง Bluetooth ก่อน'),
+        ),
       );
       return;
     }
@@ -383,66 +407,81 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(height: 12),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(Icons.print, color: AppTheme.primary),
-                SizedBox(width: 8),
-                Text('เลือกเครื่องปริ้น',
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...devices.map(
-            (d) => ListTile(
-              leading: const Icon(Icons.bluetooth, color: AppTheme.primary),
-              title: Text(d.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(d.macAdress,
-                  style: const TextStyle(fontSize: 11)),
-              trailing:
-                  _btPrinter.selectedPrinter?.macAdress == d.macAdress
-                      ? const Icon(Icons.check_circle,
-                          color: Color(0xFF16A34A))
-                      : null,
-              onTap: () async {
-                Navigator.pop(ctx);
-                final ok = await _btPrinter.connect(d);
-                if (!mounted) return;
-                setState(() {
-                  _printerName = ok ? d.name : '';
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? '✅ เชื่อมต่อ ${d.name} แล้ว'
-                        : '❌ ไม่สามารถเชื่อมต่อ ${d.name}'),
-                    backgroundColor:
-                        ok ? const Color(0xFF16A34A) : Colors.red,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder:
+          (ctx) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.print, color: AppTheme.primary),
+                    SizedBox(width: 8),
+                    Text(
+                      'เลือกเครื่องปริ้น',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...devices.map(
+                (d) => ListTile(
+                  leading: const Icon(Icons.bluetooth, color: AppTheme.primary),
+                  title: Text(
+                    d.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    d.macAdress,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing:
+                      _btPrinter.selectedPrinter?.macAdress == d.macAdress
+                          ? const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF16A34A),
+                          )
+                          : null,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final ok = await _btPrinter.connect(d);
+                    if (!mounted) return;
+                    setState(() {
+                      _printerName = ok ? d.name : '';
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ok
+                              ? '✅ เชื่อมต่อ ${d.name} แล้ว'
+                              : '❌ ไม่สามารถเชื่อมต่อ ${d.name}',
+                        ),
+                        backgroundColor:
+                            ok ? const Color(0xFF16A34A) : Colors.red,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
     );
   }
 
@@ -529,321 +568,354 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Scan Section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.barcode_reader,
-                                color: AppTheme.primary, size: 22),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Scan Supplier Bar Code',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Scan Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.barcode_reader,
+                                color: AppTheme.primary,
+                                size: 22,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _barcodeController,
-                                decoration: InputDecoration(
-                                  hintText: 'Scan or enter barcode',
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.qr_code_scanner,
-                                        color: Colors.grey),
-                                    onPressed: () =>
-                                        setState(() => _showScanner = true),
-                                  ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Scan Supplier Bar Code',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                onSubmitted: _handleBarcodeScan,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton.icon(
-                            onPressed: () => setState(() => _showScanner = true),
-                            icon: const Icon(Icons.camera_alt_outlined,
-                                size: 18),
-                            label: const Text('Open Camera Scanner'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                            ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Divider
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 24),
-                    child: Container(
-                      height: 1,
-                      color: const Color(0xFFF1F5F9),
-                    ),
-                  ),
-
-                  // Manual Entry Section
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.edit_note,
-                                color: AppTheme.primary, size: 22),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Manual Gen QR Code',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Date Fields
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _DateField(
-                                label: 'Pack Date',
-                                date: _packDate,
-                                onTap: () => _selectDate(context, true),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _DateField(
-                                label: 'Exp Date',
-                                date: _expDate,
-                                onTap: () => _selectDate(context, false),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Weight & Box
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'WEIGHT (KG)',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.grey.shade500,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: _weightController,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                            decimal: true),
-                                    decoration: const InputDecoration(
-                                      hintText: '0.00',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'BOX NUMBER',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.grey.shade500,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: _boxController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'BOX-001',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Action Buttons
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            onPressed: _handleManualGenerate,
-                            icon: const Icon(Icons.qr_code_2),
-                            label: const Text('Gen QR Code'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.print),
-                            label: const Text('Reprint Label'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                              side: BorderSide(
-                                  color:
-                                      AppTheme.primary.withValues(alpha: 0.2),
-                                  width: 2),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Last Generated
-                        if (_qrResult != null) ...[
-                          Text(
-                            'LAST GENERATED',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade400,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: () => _showQRDialog(_qrResult!),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius:
-                                          BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    child: const Icon(Icons.qr_code,
-                                        color: Colors.grey),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _qrResult!.boxNumber,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _barcodeController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Scan or enter barcode',
+                                    filled: true,
+                                    fillColor: const Color(0xFFF8FAFC),
+                                    suffixIcon: IconButton(
+                                      icon: const Icon(
+                                        Icons.qr_code_scanner,
+                                        color: Colors.grey,
+                                      ),
+                                      onPressed:
+                                          () => setState(
+                                            () => _showScanner = true,
                                           ),
-                                        ),
-                                        Text(
-                                          '${_qrResult!.weight} kg • ${_qrResult!.packDate}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
-                                      ],
                                     ),
                                   ),
-                                  Icon(Icons.chevron_right,
-                                      color: Colors.grey.shade300),
-                                ],
+                                  onSubmitted: _handleBarcodeScan,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton.icon(
+                              onPressed:
+                                  () => setState(() => _showScanner = true),
+                              icon: const Icon(
+                                Icons.camera_alt_outlined,
+                                size: 18,
+                              ),
+                              label: const Text('Open Camera Scanner'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.primary,
                               ),
                             ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+
+                    // Divider
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 24,
+                      ),
+                      child: Container(
+                        height: 1,
+                        color: const Color(0xFFF1F5F9),
+                      ),
+                    ),
+
+                    // Manual Entry Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.edit_note,
+                                color: AppTheme.primary,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Manual Gen QR Code',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Date Fields
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DateField(
+                                  label: 'Pack Date',
+                                  date: _packDate,
+                                  onTap: () => _selectDate(context, true),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _DateField(
+                                  label: 'Exp Date',
+                                  date: _expDate,
+                                  onTap: () => _selectDate(context, false),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Weight & Box
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'WEIGHT (KG)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.grey.shade500,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextField(
+                                      controller: _weightController,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
+                                      decoration: const InputDecoration(
+                                        hintText: '0.00',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'BOX NUMBER',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.grey.shade500,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextField(
+                                      controller: _boxController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'BOX-001',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Action Buttons
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton.icon(
+                              onPressed: _handleManualGenerate,
+                              icon: const Icon(Icons.qr_code_2),
+                              label: const Text('Gen QR Code'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              onPressed: () {},
+                              icon: const Icon(Icons.print),
+                              label: const Text('Reprint Label'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.primary,
+                                side: BorderSide(
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                  width: 2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Last Generated
+                          if (_qrResult != null) ...[
+                            Text(
+                              'LAST GENERATED',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.grey.shade400,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () => _showQRDialog(_qrResult!),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.qr_code,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _qrResult!.boxNumber,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${_qrResult!.weight} kg • ${_qrResult!.packDate}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
       // Bottom Navigation
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-        ),
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).padding.bottom + 8,
-          top: 8,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(Icons.qr_code_scanner, 'Scan', true),
-            _navItem(Icons.history, 'History', false),
-            _navItem(Icons.inventory_2_outlined, 'Inventory', false),
-            _navItem(Icons.settings_outlined, 'Settings', false),
-          ],
-        ),
+      // bottomNavigationBar: Container(
+      //   decoration: const BoxDecoration(
+      //     color: Colors.white,
+      //     border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+      //   ),
+      //   padding: EdgeInsets.only(
+      //     bottom: MediaQuery.of(context).padding.bottom + 8,
+      //     top: 8,
+      //   ),
+      //   child: Row(
+      //     mainAxisAlignment: MainAxisAlignment.spaceAround,
+      //     children: [
+      //       _navItem(Icons.qr_code_scanner, 'Scan', true),
+      //       _navItem(Icons.history, 'History', false),
+      //       _navItem(Icons.inventory_2_outlined, 'Inventory', false),
+      //       _navItem(Icons.settings_outlined, 'Settings', false),
+      //     ],
+      //   ),
+      // ),
+      // ── FAB — กล้อง scan barcode (มุมซ้ายล่าง) ──────────────────
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'scanCameraFabGeneric',
+        onPressed: () => setState(() => _showScanner = true),
+        // backgroundColor: AppTheme.primary,
+        backgroundColor: const Color(0xFFED6B75),
+        tooltip: 'Scan Barcode',
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 
@@ -852,9 +924,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     final item = widget.item!;
     final plan = widget.plan!;
 
-    final scannedQty  = double.tryParse(_totBox?.totBarcodeQty ?? '') ?? 0.0;
-    final totalQty    = item.poQty;
-    final pct         = totalQty > 0 ? (scannedQty / totalQty).clamp(0.0, 1.0) : 0.0;
+    final scannedQty = double.tryParse(_totBox?.totBarcodeQty ?? '') ?? 0.0;
+    final totalQty = item.poQty;
+    final pct = totalQty > 0 ? (scannedQty / totalQty).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -887,24 +959,26 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           IconButton(
             icon: Icon(
               Icons.label_outline,
-              color: _brotherName.isNotEmpty
-                  ? const Color(0xFF7C3AED)
-                  : Colors.grey.shade400,
+              color:
+                  _brotherName.isNotEmpty
+                      ? const Color(0xFF7C3AED)
+                      : Colors.grey.shade400,
             ),
-            tooltip: _brotherName.isNotEmpty
-                ? _brotherName
-                : 'เชื่อมต่อ PT-P300BT',
+            tooltip:
+                _brotherName.isNotEmpty ? _brotherName : 'เชื่อมต่อ PT-P300BT',
             onPressed: _showBrotherScanSheet,
           ),
           // SPP thermal printer button
           IconButton(
             icon: Icon(
               Icons.print_outlined,
-              color: _printerName.isNotEmpty
-                  ? AppTheme.primary
-                  : Colors.grey.shade400,
+              color:
+                  _printerName.isNotEmpty
+                      ? AppTheme.primary
+                      : Colors.grey.shade400,
             ),
-            tooltip: _printerName.isNotEmpty ? _printerName : 'เลือกเครื่องปริ้น',
+            tooltip:
+                _printerName.isNotEmpty ? _printerName : 'เลือกเครื่องปริ้น',
             onPressed: _showPrinterSelectorSheet,
           ),
           IconButton(
@@ -932,110 +1006,110 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 ),
                 if (item.matDesc2.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  Text(item.matDesc2,
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade500)),
+                  Text(
+                    item.matDesc2,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
                 ],
                 const SizedBox(height: 10),
                 // Qty summary row
                 _loadingBoxData
                     ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: CircularProgressIndicator(
-                              color: AppTheme.primary, strokeWidth: 2),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primary,
+                          strokeWidth: 2,
                         ),
-                      )
+                      ),
+                    )
                     : _boxDataError != null
-                        ? _InlineError(
-                            message: _boxDataError!, onRetry: _loadBoxData)
-                        : Column(
-                            children: [
-
-                              // Progress bar
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Scanned ${(pct * 100).toStringAsFixed(1)}%',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey.shade500),
-                                      ),
-                                      Text(
-                                        '${_fmtD(scannedQty)} / ${_fmtD(totalQty)}',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey.shade500),
-                                      ),
-                                    ],
+                    ? _InlineError(
+                      message: _boxDataError!,
+                      onRetry: _loadBoxData,
+                    )
+                    : Column(
+                      children: [
+                        // Progress bar
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Scanned ${(pct * 100).toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
                                   ),
-                                  const SizedBox(height: 2),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: pct,
-                                      minHeight: 8,
-                                      backgroundColor:
-                                          const Color(0xFFE2E8F0),
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                        pct >= 1.0
-                                            ? const Color(0xFF16A34A)
-                                            : AppTheme.primary,
-                                      ),
-                                    ),
+                                ),
+                                Text(
+                                  '${_fmtD(scannedQty)} / ${_fmtD(totalQty)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
                                   ),
-                                ],
-                              ),
-                              // Extra info from TotBox
-                              if (_totBox != null) ...[
-                                // const SizedBox(height: 10),
-                                // const Divider(height: 1),
-                                // const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: [
-                                    if (_totBox!.accepted.isNotEmpty &&
-                                        _totBox!.accepted != '0')
-                                      _SmallChip(
-                                        icon: Icons.check_circle_outline,
-                                        label:
-                                            'Accepted: ${_totBox!.accepted}',
-                                        color: const Color(0xFF16A34A),
-                                      ),
-                                    if (_totBox!.withIssue.isNotEmpty &&
-                                        _totBox!.withIssue != '0')
-                                      _SmallChip(
-                                        icon: Icons.warning_amber_outlined,
-                                        label:
-                                            'Issue: ${_totBox!.withIssue}',
-                                        color: const Color(0xFFD97706),
-                                      ),
-                                    if (_totBox!.rejected.isNotEmpty &&
-                                        _totBox!.rejected != '0')
-                                      _SmallChip(
-                                        icon: Icons.cancel_outlined,
-                                        label:
-                                            'Rejected: ${_totBox!.rejected}',
-                                        color: Colors.red.shade400,
-                                      ),
-                                    if (_totBox!.hold == 'Y')
-                                      _SmallChip(
-                                        icon: Icons.pause_circle_outline,
-                                        label: 'Hold',
-                                        color: Colors.red.shade400,
-                                      ),
-                                  ],
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 2),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: pct,
+                                minHeight: 8,
+                                backgroundColor: const Color(0xFFE2E8F0),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  pct >= 1.0
+                                      ? const Color(0xFF16A34A)
+                                      : AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Extra info from TotBox
+                        if (_totBox != null) ...[
+                          // const SizedBox(height: 10),
+                          // const Divider(height: 1),
+                          // const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              if (_totBox!.accepted.isNotEmpty &&
+                                  _totBox!.accepted != '0')
+                                _SmallChip(
+                                  icon: Icons.check_circle_outline,
+                                  label: 'Accepted: ${_totBox!.accepted}',
+                                  color: const Color(0xFF16A34A),
+                                ),
+                              if (_totBox!.withIssue.isNotEmpty &&
+                                  _totBox!.withIssue != '0')
+                                _SmallChip(
+                                  icon: Icons.warning_amber_outlined,
+                                  label: 'Issue: ${_totBox!.withIssue}',
+                                  color: const Color(0xFFD97706),
+                                ),
+                              if (_totBox!.rejected.isNotEmpty &&
+                                  _totBox!.rejected != '0')
+                                _SmallChip(
+                                  icon: Icons.cancel_outlined,
+                                  label: 'Rejected: ${_totBox!.rejected}',
+                                  color: Colors.red.shade400,
+                                ),
+                              if (_totBox!.hold == 'Y')
+                                _SmallChip(
+                                  icon: Icons.pause_circle_outline,
+                                  label: 'Hold',
+                                  color: Colors.red.shade400,
+                                ),
                             ],
                           ),
+                        ],
+                      ],
+                    ),
               ],
             ),
           ),
@@ -1053,27 +1127,38 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                     decoration: InputDecoration(
                       hintText: 'Scan Or Enter Barcode',
                       hintStyle: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 13),
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF1F5F9),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: Icon(Icons.qr_code_scanner,
-                          color: Colors.grey.shade400, size: 20),
-                      suffixIcon: _barcodeController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear,
-                                  size: 18, color: Colors.grey),
-                              onPressed: () {
-                                _barcodeController.clear();
-                                setState(() {});
-                              },
-                            )
-                          : null,
+                      prefixIcon: Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.grey.shade400,
+                        size: 20,
+                      ),
+                      suffixIcon:
+                          _barcodeController.text.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  size: 18,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  _barcodeController.clear();
+                                  setState(() {});
+                                },
+                              )
+                              : null,
                     ),
                     onChanged: (_) => setState(() {}),
                     onSubmitted: _handleBarcodeScan,
@@ -1082,15 +1167,19 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 ),
                 const SizedBox(width: 8),
                 Material(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(10),
+                  // color: AppTheme.primary,
+                  color: const Color(0xFF1B90E3),
+                  borderRadius: BorderRadius.circular(50),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(50),
                     onTap: () => setState(() => _showScanner = true),
                     child: const Padding(
                       padding: EdgeInsets.all(11),
-                      child: Icon(Icons.camera_alt_outlined,
-                          color: Colors.white, size: 22),
+                      child: Icon(
+                        Icons.qr_code_scanner,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),
@@ -1108,8 +1197,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.edit_note,
-                        color: AppTheme.primary, size: 18),
+                    const Icon(
+                      Icons.edit_note,
+                      color: AppTheme.primary,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     const Text(
                       'Manual Gen QR Code',
@@ -1162,32 +1254,40 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                           const SizedBox(height: 4),
                           TextField(
                             controller: _weightController,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             style: const TextStyle(fontSize: 13),
                             decoration: InputDecoration(
                               hintText: '0.00',
                               hintStyle: TextStyle(
-                                  color: Colors.grey.shade400, fontSize: 13),
+                                color: Colors.grey.shade400,
+                                fontSize: 13,
+                              ),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
+                                horizontal: 10,
+                                vertical: 10,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                  color: Color(0xFFE2E8F0),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                  color: Color(0xFFE2E8F0),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: AppTheme.primary, width: 1.5),
+                                  color: AppTheme.primary,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -1215,25 +1315,33 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                             decoration: InputDecoration(
                               hintText: 'BOX-001',
                               hintStyle: TextStyle(
-                                  color: Colors.grey.shade400, fontSize: 13),
+                                color: Colors.grey.shade400,
+                                fontSize: 13,
+                              ),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
+                                horizontal: 10,
+                                vertical: 10,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                  color: Color(0xFFE2E8F0),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFFE2E8F0)),
+                                  color: Color(0xFFE2E8F0),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: const BorderSide(
-                                    color: AppTheme.primary, width: 1.5),
+                                  color: AppTheme.primary,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -1280,9 +1388,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppTheme.primary,
                             side: BorderSide(
-                                color:
-                                    AppTheme.primary.withValues(alpha: 0.4),
-                                width: 1.5),
+                              color: AppTheme.primary.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -1304,12 +1412,14 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           // ── Box list section header (fixed) ──────────────────────
           Container(
             color: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.inventory_2_outlined,
-                    size: 16, color: AppTheme.primary),
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 16,
+                  color: AppTheme.primary,
+                ),
                 const SizedBox(width: 6),
                 const Text(
                   'Scanned Box List',
@@ -1323,7 +1433,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                 if (!_loadingBoxData)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primary,
                       borderRadius: BorderRadius.circular(20),
@@ -1344,28 +1456,28 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
           // ── Box list (independently scrollable) ──────────────────
           Expanded(
-            child: _loadingBoxData
-                ? const Center(
-                    child:
-                        CircularProgressIndicator(color: AppTheme.primary),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadBoxData,
-                    color: AppTheme.primary,
-                    child: _boxDataError != null
-                        ? ListView(
-                            physics:
-                                const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              _InlineError(
-                                  message: _boxDataError!,
-                                  onRetry: _loadBoxData),
-                            ],
-                          )
-                        : _boxList.isEmpty
-                            ? ListView(
-                                physics:
-                                    const AlwaysScrollableScrollPhysics(),
+            child:
+                _loadingBoxData
+                    ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    )
+                    : RefreshIndicator(
+                      onRefresh: _loadBoxData,
+                      color: AppTheme.primary,
+                      child:
+                          _boxDataError != null
+                              ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  _InlineError(
+                                    message: _boxDataError!,
+                                    onRetry: _loadBoxData,
+                                  ),
+                                ],
+                              )
+                              : _boxList.isEmpty
+                              ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 children: const [
                                   Center(
                                     child: Padding(
@@ -1373,9 +1485,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.inbox_outlined,
-                                              size: 56,
-                                              color: Color(0xFFCBD5E1)),
+                                          Icon(
+                                            Icons.inbox_outlined,
+                                            size: 56,
+                                            color: Color(0xFFCBD5E1),
+                                          ),
                                           SizedBox(height: 12),
                                           Text(
                                             'ยังไม่มี Box ที่สแกน',
@@ -1391,45 +1505,60 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                                   ),
                                 ],
                               )
-                            : ListView.separated(
-                                physics:
-                                    const AlwaysScrollableScrollPhysics(),
+                              : ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.all(16),
                                 itemCount: _boxList.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
-                                itemBuilder: (context, i) => _BoxCard(
-                                  box: _boxList[i],
-                                  index: i + 1,
-                                  onDelete: () =>
-                                      _handleDeleteBox(_boxList[i]),
-                                ),
+                                separatorBuilder:
+                                    (_, __) => const SizedBox(height: 8),
+                                itemBuilder:
+                                    (context, i) => _BoxCard(
+                                      box: _boxList[i],
+                                      index: i + 1,
+                                      onDelete:
+                                          () => _handleDeleteBox(_boxList[i]),
+                                    ),
                               ),
-                  ),
+                    ),
           ),
         ],
       ),
+      // ── FAB — กล้อง scan barcode (มุมซ้ายล่าง) ──────────────────
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'scanCameraFab',
+        // borderRadius: BorderRadius.circular(50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+        onPressed: () => setState(() => _showScanner = true),
+        // backgroundColor: AppTheme.primary,
+        backgroundColor: const Color(0xFF1B90E3),
+        tooltip: 'Scan Barcode',
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
     );
   }
 
   Future<void> _handleDeleteBox(LstBoxItem box) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: Text('ต้องการลบ Box ${box.boxNo.isNotEmpty ? box.boxNo : '-'} ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ยกเลิก'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('ยืนยันการลบ'),
+            content: Text(
+              'ต้องการลบ Box ${box.boxNo.isNotEmpty ? box.boxNo : '-'} ใช่หรือไม่?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('ลบ'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('ลบ'),
-          ),
-        ],
-      ),
     );
     if (confirm != true || !mounted) return;
 
@@ -1438,7 +1567,8 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     setState(() => _isLoading = true);
     try {
       await widget.apiService.setStickerBox(
-        company: item.company.isNotEmpty ? item.company : widget.apiService.company,
+        company:
+            item.company.isNotEmpty ? item.company : widget.apiService.company,
         user: widget.apiService.username,
         dType: plan.transactionType,
         dBook: item.poBookNo.isNotEmpty ? item.poBookNo : plan.poBookNo,
@@ -1463,8 +1593,9 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -1546,9 +1677,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon,
-            color: active ? AppTheme.primary : Colors.grey.shade400,
-            size: 24),
+        Icon(
+          icon,
+          color: active ? AppTheme.primary : Colors.grey.shade400,
+          size: 24,
+        ),
         const SizedBox(height: 2),
         Text(
           label,
@@ -1612,8 +1745,11 @@ class _DateField extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.calendar_today,
-                    size: 18, color: Colors.grey.shade400),
+                Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: Colors.grey.shade400,
+                ),
               ],
             ),
           ),
@@ -1662,10 +1798,7 @@ class _QRResultSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             data.boxNumber,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 24),
           // QR Code
@@ -1682,9 +1815,7 @@ class _QRResultSheet extends StatelessWidget {
               size: 200,
               gapless: false,
               errorStateBuilder: (cxt, err) {
-                return const Center(
-                  child: Text('Error generating QR code'),
-                );
+                return const Center(child: Text('Error generating QR code'));
               },
             ),
           ),
@@ -1733,7 +1864,9 @@ class _QRResultSheet extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(
-                            color: AppTheme.primary, width: 1.5),
+                          color: AppTheme.primary,
+                          width: 1.5,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1762,10 +1895,7 @@ class _QRResultSheet extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -1838,7 +1968,8 @@ class _StickerResultSheet extends StatelessWidget {
                       backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
@@ -1852,12 +1983,17 @@ class _StickerResultSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: const BorderSide(
-                          color: AppTheme.primary, width: 1.5),
+                        color: AppTheme.primary,
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('ปิด',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'ปิด',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ),
@@ -1884,13 +2020,11 @@ class _LabelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expDateFmt    = SetStickerBoxResult.fmtDate(result.expDate);
-    final displayWeight = weight.isNotEmpty
-        ? weight
-        : (result.qty.isNotEmpty ? result.qty : '-');
-    final displaySupBarcode = result.barcodeSup.isNotEmpty
-        ? result.barcodeSup
-        : result.productCode;
+    final expDateFmt = SetStickerBoxResult.fmtDate(result.expDate);
+    final displayWeight =
+        weight.isNotEmpty ? weight : (result.qty.isNotEmpty ? result.qty : '-');
+    final displaySupBarcode =
+        result.barcodeSup.isNotEmpty ? result.barcodeSup : result.productCode;
 
     return Container(
       decoration: BoxDecoration(
@@ -1920,15 +2054,20 @@ class _LabelCard extends StatelessWidget {
                     flex: 44,
                     child: Padding(
                       padding: const EdgeInsets.all(5),
-                      child: result.newBarcode.isNotEmpty
-                          ? QrImageView(
-                              data: result.newBarcode,
-                              version: QrVersions.auto,
-                              gapless: false,
-                            )
-                          : const Center(
-                              child: Icon(Icons.qr_code,
-                                  size: 48, color: Colors.grey)),
+                      child:
+                          result.newBarcode.isNotEmpty
+                              ? QrImageView(
+                                data: result.newBarcode,
+                                version: QrVersions.auto,
+                                gapless: false,
+                              )
+                              : const Center(
+                                child: Icon(
+                                  Icons.qr_code,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                              ),
                     ),
                   ),
                   // Vertical divider
@@ -2021,10 +2160,7 @@ class _LabelCard extends StatelessWidget {
                           const SizedBox(width: 3),
                           const Text(
                             'Kg.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.black),
                           ),
                         ],
                       ),
@@ -2096,7 +2232,7 @@ class _BoxCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                         'Box No. ${box.boxNo.isNotEmpty ? box.boxNo : '-'}',
+                          'Box No. ${box.boxNo.isNotEmpty ? box.boxNo : '-'}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -2107,9 +2243,13 @@ class _BoxCard extends StatelessWidget {
                       if (box.qty.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF16A34A,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -2127,8 +2267,11 @@ class _BoxCard extends StatelessWidget {
                           onTap: onDelete,
                           child: const Padding(
                             padding: EdgeInsets.all(4),
-                            child: Icon(Icons.delete_outline,
-                                size: 20, color: Colors.red),
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                           ),
                         ),
                       ],
@@ -2140,21 +2283,21 @@ class _BoxCard extends StatelessWidget {
                     runSpacing: 4,
                     children: [
                       if (box.barcode.isNotEmpty)
-                        _InfoRow(
-                            icon: Icons.qr_code,
-                            label: box.barcode),
+                        _InfoRow(icon: Icons.qr_code, label: box.barcode),
                       // if (box.newBarcode.isNotEmpty)
                       //   _InfoRow(
                       //       icon: Icons.qr_code_2,
                       //       label: 'New: ${box.newBarcode}'),
                       if (box.mfgDate.isNotEmpty)
                         _InfoRow(
-                            icon: Icons.calendar_today_outlined,
-                            label: 'MFG: ${_fmtDate(box.mfgDate)}'),
+                          icon: Icons.calendar_today_outlined,
+                          label: 'MFG: ${_fmtDate(box.mfgDate)}',
+                        ),
                       if (box.expDate.isNotEmpty)
                         _InfoRow(
-                            icon: Icons.hourglass_bottom_outlined,
-                            label: 'EXP: ${_fmtDate(box.expDate)}'),
+                          icon: Icons.hourglass_bottom_outlined,
+                          label: 'EXP: ${_fmtDate(box.expDate)}',
+                        ),
                     ],
                   ),
                 ],
@@ -2186,8 +2329,10 @@ class _InfoRow extends StatelessWidget {
       children: [
         Icon(icon, size: 12, color: Colors.grey.shade400),
         const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+        ),
       ],
     );
   }
@@ -2199,8 +2344,11 @@ class _QtyTile extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _QtyTile(
-      {required this.label, required this.value, required this.color});
+  const _QtyTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2215,9 +2363,10 @@ class _QtyTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style:
-                    TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+            ),
             const SizedBox(height: 2),
             Text(
               value,
@@ -2242,8 +2391,11 @@ class _SmallChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  const _SmallChip(
-      {required this.icon, required this.label, required this.color});
+  const _SmallChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2300,8 +2452,7 @@ class _InlineError extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('ลองใหม่'),
-              style: TextButton.styleFrom(
-                  foregroundColor: AppTheme.primary),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
             ),
           ],
         ),
@@ -2317,7 +2468,10 @@ class _BrotherConnectSheet extends StatefulWidget {
   final BrotherBLEService brotherBLE;
   final void Function(String name) onConnected;
 
-  const _BrotherConnectSheet({required this.brotherBLE, required this.onConnected});
+  const _BrotherConnectSheet({
+    required this.brotherBLE,
+    required this.onConnected,
+  });
 
   @override
   State<_BrotherConnectSheet> createState() => _BrotherConnectSheetState();
@@ -2340,10 +2494,16 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
   }
 
   Future<void> _loadBonded() async {
-    setState(() { _loadingBonded = true; });
+    setState(() {
+      _loadingBonded = true;
+    });
     try {
       final list = await widget.brotherBLE.getBondedDevices();
-      if (mounted) setState(() { _bonded = list; _loadingBonded = false; });
+      if (mounted)
+        setState(() {
+          _bonded = list;
+          _loadingBonded = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loadingBonded = false);
     }
@@ -2358,16 +2518,20 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
   Future<void> _connectByMac() async {
     final mac = _macCtrl.text.trim();
     if (mac.isEmpty) return;
-    setState(() { _connecting = true; _errorMsg = null; });
+    setState(() {
+      _connecting = true;
+      _errorMsg = null;
+    });
     // Request permissions before connecting
     final perm = await widget.brotherBLE.requestPermissions();
     if (perm != 'granted') {
       if (!mounted) return;
       setState(() {
         _connecting = false;
-        _errorMsg = perm == 'permanentlyDenied'
-            ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
-            : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
+        _errorMsg =
+            perm == 'permanentlyDenied'
+                ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
+                : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
       });
       return;
     }
@@ -2378,40 +2542,59 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
   }
 
   Future<void> _scan() async {
-    setState(() { _scanning = true; _scanned = []; _errorMsg = null; });
+    setState(() {
+      _scanning = true;
+      _scanned = [];
+      _errorMsg = null;
+    });
     // Request permissions before scanning
     final perm = await widget.brotherBLE.requestPermissions();
     if (perm != 'granted') {
       if (!mounted) return;
       setState(() {
         _scanning = false;
-        _errorMsg = perm == 'permanentlyDenied'
-            ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
-            : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
+        _errorMsg =
+            perm == 'permanentlyDenied'
+                ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
+                : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
       });
       return;
     }
     final devices = await widget.brotherBLE.scanForPrinters();
     if (!mounted) return;
-    setState(() { _scanning = false; _scanned = devices; });
+    setState(() {
+      _scanning = false;
+      _scanned = devices;
+    });
     if (devices.isEmpty) {
-      setState(() => _errorMsg = 'ไม่พบอุปกรณ์ Brother — ลองกด Power ค้างไว้ที่เครื่องปริ้นแล้วลองใหม่');
+      setState(
+        () =>
+            _errorMsg =
+                'ไม่พบอุปกรณ์ Brother — ลองกด Power ค้างไว้ที่เครื่องปริ้นแล้วลองใหม่',
+      );
     }
   }
 
   Future<void> _connectDevice(BluetoothDevice d) async {
-    setState(() { _connecting = true; _errorMsg = null; });
+    setState(() {
+      _connecting = true;
+      _errorMsg = null;
+    });
     widget.brotherBLE.saveBondedDevice(d);
     _macCtrl.text = d.remoteId.str;
     if (!mounted) return;
     setState(() => _connecting = false);
     Navigator.pop(context);
     widget.onConnected(
-        d.platformName.isNotEmpty ? d.platformName : d.remoteId.str);
+      d.platformName.isNotEmpty ? d.platformName : d.remoteId.str,
+    );
   }
 
   Future<void> _connectSdkDevice(BrotherDevice d) async {
-    setState(() { _connecting = true; _errorMsg = null; });
+    setState(() {
+      _connecting = true;
+      _errorMsg = null;
+    });
     widget.brotherBLE.saveDevice(d);
     _macCtrl.text = widget.brotherBLE.savedDeviceId;
     if (!mounted) return;
@@ -2424,8 +2607,11 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16, right: 16, top: 16),
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2433,10 +2619,12 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
           // Handle
           Center(
             child: Container(
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2)),
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -2445,14 +2633,22 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
             children: [
               Icon(Icons.label_outline, color: Color(0xFF7C3AED)),
               SizedBox(width: 8),
-              Text('Brother PT-P300BT',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text(
+                'Brother PT-P300BT',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           // MAC address input
-          const Text('เชื่อมต่อผ่าน MAC Address',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+          const Text(
+            'เชื่อมต่อผ่าน MAC Address',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -2461,8 +2657,13 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
                   controller: _macCtrl,
                   decoration: InputDecoration(
                     hintText: 'XX:XX:XX:XX:XX:XX',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     isDense: true,
                   ),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
@@ -2476,13 +2677,25 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7C3AED),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
-                child: _connecting
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('เชื่อมต่อ'),
+                child:
+                    _connecting
+                        ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                        : const Text('เชื่อมต่อ'),
               ),
             ],
           ),
@@ -2499,14 +2712,20 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
               const Expanded(child: Divider()),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('อุปกรณ์ที่จับคู่ไว้แล้ว',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                child: Text(
+                  'อุปกรณ์ที่จับคู่ไว้แล้ว',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
               ),
               const Expanded(child: Divider()),
               if (_loadingBonded)
                 const Padding(
                   padding: EdgeInsets.only(left: 8),
-                  child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 )
               else
                 IconButton(
@@ -2527,27 +2746,47 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
               ),
             ),
           if (_bonded.isNotEmpty)
-            ..._bonded.map((d) => ListTile(
-              dense: true,
-              leading: const Icon(Icons.bluetooth_connected, color: Color(0xFF7C3AED), size: 20),
-              title: Text(
-                d.platformName.isNotEmpty ? d.platformName : '(ไม่มีชื่อ)',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+            ..._bonded.map(
+              (d) => ListTile(
+                dense: true,
+                leading: const Icon(
+                  Icons.bluetooth_connected,
+                  color: Color(0xFF7C3AED),
+                  size: 20,
+                ),
+                title: Text(
+                  d.platformName.isNotEmpty ? d.platformName : '(ไม่มีชื่อ)',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  d.remoteId.str,
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                ),
+                trailing:
+                    widget.brotherBLE.savedDeviceId == d.remoteId.str
+                        ? const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF16A34A),
+                          size: 18,
+                        )
+                        : const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                onTap: () {
+                  _macCtrl.text = d.remoteId.str;
+                  _connectDevice(d);
+                },
               ),
-              subtitle: Text(d.remoteId.str,
-                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
-              trailing: widget.brotherBLE.savedDeviceId == d.remoteId.str
-                  ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18)
-                  : const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-              onTap: () {
-                _macCtrl.text = d.remoteId.str;
-                _connectDevice(d);
-              },
-            )),
+            ),
           // Error
           if (_errorMsg != null) ...[
             const SizedBox(height: 8),
-            Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+            Text(
+              _errorMsg!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
           ],
           const SizedBox(height: 16),
           // Scan divider
@@ -2556,8 +2795,10 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
               const Expanded(child: Divider()),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('หรือค้นหา BLE',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                child: Text(
+                  'หรือค้นหา BLE',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
               ),
               const Expanded(child: Divider()),
             ],
@@ -2567,34 +2808,55 @@ class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: (_scanning || _connecting) ? null : _scan,
-              icon: _scanning
-                  ? const SizedBox(width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.bluetooth_searching, size: 18),
-              label: Text(_scanning ? 'กำลังค้นหา 8 วินาที…' : 'ค้นหาอุปกรณ์ BLE'),
+              icon:
+                  _scanning
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.bluetooth_searching, size: 18),
+              label: Text(
+                _scanning ? 'กำลังค้นหา 8 วินาที…' : 'ค้นหาอุปกรณ์ BLE',
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFF7C3AED)),
                 foregroundColor: const Color(0xFF7C3AED),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
           if (_scanned.isNotEmpty) ...[
             const SizedBox(height: 8),
-            ..._scanned.map((d) => ListTile(
-              dense: true,
-              leading: const Icon(Icons.bluetooth, color: Color(0xFF7C3AED), size: 20),
-              title: Text(
-                d.printerName ?? d.modelName,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+            ..._scanned.map(
+              (d) => ListTile(
+                dense: true,
+                leading: const Icon(
+                  Icons.bluetooth,
+                  color: Color(0xFF7C3AED),
+                  size: 20,
+                ),
+                title: Text(
+                  d.printerName ?? d.modelName,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  d.macAddress ?? '',
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                ),
+                trailing:
+                    widget.brotherBLE.savedDeviceId == (d.macAddress ?? '')
+                        ? const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF16A34A),
+                          size: 18,
+                        )
+                        : null,
+                onTap: () => _connectSdkDevice(d),
               ),
-              subtitle: Text(d.macAddress ?? '',
-                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
-              trailing: widget.brotherBLE.savedDeviceId == (d.macAddress ?? '')
-                  ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18)
-                  : null,
-              onTap: () => _connectSdkDevice(d),
-            )),
+            ),
           ],
           const SizedBox(height: 16),
         ],
