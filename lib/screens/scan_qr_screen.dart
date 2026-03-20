@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:brother_printer/brother_printer.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -6,6 +8,7 @@ import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../services/bluetooth_printer_service.dart';
+import '../services/brother_ble_service.dart';
 
 class ScanQRScreen extends StatefulWidget {
   final ApiService apiService;
@@ -43,9 +46,13 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   bool _loadingBoxData = false;
   String? _boxDataError;
 
-  // ── Bluetooth printer ──────────────────────────────────────────
+  // ── Bluetooth printer (SPP / thermal) ─────────────────────────
   final _btPrinter = BtPrinterService();
   String _printerName = '';
+
+  // ── Brother BLE printer (PT-P300BT) ───────────────────────
+  final _brotherBLE = BrotherBLEService();
+  String _brotherName = '';
 
   @override
   void initState() {
@@ -268,6 +275,50 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
       builder: (context) => _StickerResultSheet(result: result, weight: weight),
     );
     _autoPrintLabel(result, weight);
+    // Brother BLE auto-print (only if saved device is configured)
+    if (_brotherBLE.savedDeviceId.isNotEmpty) {
+      final boxNo = result.boxNo.isNotEmpty ? result.boxNo : _boxController.text.trim();
+      final w     = weight.isNotEmpty ? weight : result.qty;
+      _autoPrintBrother(boxNo, w);
+    }
+  }
+
+  Future<void> _autoPrintBrother(String boxNo, String weight) async {
+    final ok = await _brotherBLE.printLabel(boxNo: boxNo, weight: weight);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Brother: ปริ้นไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showBrotherScanSheet() async {
+    if (!mounted) return;
+
+    // Show device selector / MAC input sheet
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => _BrotherConnectSheet(
+        brotherBLE: _brotherBLE,
+        onConnected: (name) {
+          if (!mounted) return;
+          setState(() => _brotherName = name);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Brother เชื่อมต่อแล้ว — $name'),
+              backgroundColor: const Color(0xFF16A34A),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _autoPrintLabel(
@@ -832,6 +883,20 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           ],
         ),
         actions: [
+          // Brother BLE printer button (PT-P300BT)
+          IconButton(
+            icon: Icon(
+              Icons.label_outline,
+              color: _brotherName.isNotEmpty
+                  ? const Color(0xFF7C3AED)
+                  : Colors.grey.shade400,
+            ),
+            tooltip: _brotherName.isNotEmpty
+                ? _brotherName
+                : 'เชื่อมต่อ PT-P300BT',
+            onPressed: _showBrotherScanSheet,
+          ),
+          // SPP thermal printer button
           IconButton(
             icon: Icon(
               Icons.print_outlined,
@@ -2265,6 +2330,299 @@ class _InlineError extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Brother Connect Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _BrotherConnectSheet extends StatefulWidget {
+  final BrotherBLEService brotherBLE;
+  final void Function(String name) onConnected;
+
+  const _BrotherConnectSheet({required this.brotherBLE, required this.onConnected});
+
+  @override
+  State<_BrotherConnectSheet> createState() => _BrotherConnectSheetState();
+}
+
+class _BrotherConnectSheetState extends State<_BrotherConnectSheet> {
+  late final TextEditingController _macCtrl;
+  bool _connecting = false;
+  bool _scanning = false;
+  bool _loadingBonded = false;
+  List<BrotherDevice> _scanned = [];
+  List<BluetoothDevice> _bonded = [];
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _macCtrl = TextEditingController(text: widget.brotherBLE.savedDeviceId);
+    _loadBonded();
+  }
+
+  Future<void> _loadBonded() async {
+    setState(() { _loadingBonded = true; });
+    try {
+      final list = await widget.brotherBLE.getBondedDevices();
+      if (mounted) setState(() { _bonded = list; _loadingBonded = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingBonded = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _macCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _connectByMac() async {
+    final mac = _macCtrl.text.trim();
+    if (mac.isEmpty) return;
+    setState(() { _connecting = true; _errorMsg = null; });
+    // Request permissions before connecting
+    final perm = await widget.brotherBLE.requestPermissions();
+    if (perm != 'granted') {
+      if (!mounted) return;
+      setState(() {
+        _connecting = false;
+        _errorMsg = perm == 'permanentlyDenied'
+            ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
+            : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
+      });
+      return;
+    }
+    widget.brotherBLE.saveByMac(mac);
+    if (!mounted) return;
+    Navigator.pop(context);
+    widget.onConnected(widget.brotherBLE.savedDeviceName);
+  }
+
+  Future<void> _scan() async {
+    setState(() { _scanning = true; _scanned = []; _errorMsg = null; });
+    // Request permissions before scanning
+    final perm = await widget.brotherBLE.requestPermissions();
+    if (perm != 'granted') {
+      if (!mounted) return;
+      setState(() {
+        _scanning = false;
+        _errorMsg = perm == 'permanentlyDenied'
+            ? 'ถูกปิดถาวร — เปิด Settings → อนุญาต Bluetooth แล้วลองใหม่'
+            : '❌ ยังไม่ได้รับอนุญาต Bluetooth';
+      });
+      return;
+    }
+    final devices = await widget.brotherBLE.scanForPrinters();
+    if (!mounted) return;
+    setState(() { _scanning = false; _scanned = devices; });
+    if (devices.isEmpty) {
+      setState(() => _errorMsg = 'ไม่พบอุปกรณ์ Brother — ลองกด Power ค้างไว้ที่เครื่องปริ้นแล้วลองใหม่');
+    }
+  }
+
+  Future<void> _connectDevice(BluetoothDevice d) async {
+    setState(() { _connecting = true; _errorMsg = null; });
+    widget.brotherBLE.saveBondedDevice(d);
+    _macCtrl.text = d.remoteId.str;
+    if (!mounted) return;
+    setState(() => _connecting = false);
+    Navigator.pop(context);
+    widget.onConnected(
+        d.platformName.isNotEmpty ? d.platformName : d.remoteId.str);
+  }
+
+  Future<void> _connectSdkDevice(BrotherDevice d) async {
+    setState(() { _connecting = true; _errorMsg = null; });
+    widget.brotherBLE.saveDevice(d);
+    _macCtrl.text = widget.brotherBLE.savedDeviceId;
+    if (!mounted) return;
+    setState(() => _connecting = false);
+    Navigator.pop(context);
+    widget.onConnected(widget.brotherBLE.savedDeviceName);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16, right: 16, top: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Title
+          const Row(
+            children: [
+              Icon(Icons.label_outline, color: Color(0xFF7C3AED)),
+              SizedBox(width: 8),
+              Text('Brother PT-P300BT',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // MAC address input
+          const Text('เชื่อมต่อผ่าน MAC Address',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _macCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'XX:XX:XX:XX:XX:XX',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    isDense: true,
+                  ),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+                  autocorrect: false,
+                  textCapitalization: TextCapitalization.characters,
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _connecting ? null : _connectByMac,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+                child: _connecting
+                    ? const SizedBox(width: 18, height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('เชื่อมต่อ'),
+              ),
+            ],
+          ),
+          // MAC hint
+          const SizedBox(height: 4),
+          const Text(
+            'ดู MAC ได้ที่ Settings → Connected devices → PT-P300BT5327 → ⚙️',
+            style: TextStyle(fontSize: 10, color: Colors.grey),
+          ),
+          // Bonded devices section
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text('อุปกรณ์ที่จับคู่ไว้แล้ว',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              ),
+              const Expanded(child: Divider()),
+              if (_loadingBonded)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _loadBonded,
+                  color: const Color(0xFF7C3AED),
+                  tooltip: 'รีเฟรช',
+                ),
+            ],
+          ),
+          if (_bonded.isEmpty && !_loadingBonded)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                'ไม่พบ — ลอง pair เครื่องปริ้นผ่านแอฟ Brother Design&Print 2 ก่อน แล้วกด 🔄',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+            ),
+          if (_bonded.isNotEmpty)
+            ..._bonded.map((d) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.bluetooth_connected, color: Color(0xFF7C3AED), size: 20),
+              title: Text(
+                d.platformName.isNotEmpty ? d.platformName : '(ไม่มีชื่อ)',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(d.remoteId.str,
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+              trailing: widget.brotherBLE.savedDeviceId == d.remoteId.str
+                  ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18)
+                  : const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+              onTap: () {
+                _macCtrl.text = d.remoteId.str;
+                _connectDevice(d);
+              },
+            )),
+          // Error
+          if (_errorMsg != null) ...[
+            const SizedBox(height: 8),
+            Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          ],
+          const SizedBox(height: 16),
+          // Scan divider
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text('หรือค้นหา BLE',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: (_scanning || _connecting) ? null : _scan,
+              icon: _scanning
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.bluetooth_searching, size: 18),
+              label: Text(_scanning ? 'กำลังค้นหา 8 วินาที…' : 'ค้นหาอุปกรณ์ BLE'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF7C3AED)),
+                foregroundColor: const Color(0xFF7C3AED),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          if (_scanned.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ..._scanned.map((d) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.bluetooth, color: Color(0xFF7C3AED), size: 20),
+              title: Text(
+                d.printerName ?? d.modelName,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(d.macAddress ?? '',
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+              trailing: widget.brotherBLE.savedDeviceId == (d.macAddress ?? '')
+                  ? const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 18)
+                  : null,
+              onTap: () => _connectSdkDevice(d),
+            )),
+          ],
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
