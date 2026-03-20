@@ -659,6 +659,83 @@ class ApiService {
       throw ApiException('SetStickerBoxV2 HTTP error: ${response.statusCode}');
     }
   }
+
+  // ── SEND_OTP_TO_LINE ──────────────────────────────────────────────────────
+
+  /// POST /Apip/WsEwarehouse/SEND_OTP_TO_LINE
+  ///
+  /// ส่ง OTP ผ่าน LINE Notify ไปยัง Staff
+  ///
+  /// Parameters:
+  /// - [user]       : username ผู้ login
+  /// - [staffCode]  : รหัส Staff (ถ้า user คือ DEMO → ใช้ "PG0620" fixed)
+  /// - [otp]        : รหัส OTP 6 หลัก
+  /// - [refCode]    : Ref Code สำหรับอ้างอิง (6 ตัวอักษร)
+  Future<void> sendOtpToLine({
+    required String user,
+    required String staffCode,
+    required String otp,
+    required String refCode,
+  }) async {
+    final headers = await _buildProtectedHeaders();
+
+    // ── เงื่อนไข: ถ้า user คือ DEMO ใช้ staff code PG0620 fixed ──
+    final effectiveStaffCode =
+        user.toUpperCase() == 'DEMO' ? 'PG0620' : staffCode;
+
+    final message =
+        'OTP EWAREHOUSE : $otp\nRef: $refCode \nStaffCode:$user';
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/Apip/WsEwarehouse/SEND_OTP_TO_LINE'),
+    );
+    request.headers.addAll(headers);
+    request.fields['P_USER']       = user;
+    request.fields['P_STAFF_CODE'] = effectiveStaffCode;
+    request.fields['P_MESSAGE']    = message;
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📤 API REQUEST: SEND_OTP_TO_LINE');
+    debugPrint('│ URL    : ${request.url}');
+    debugPrint('├── Headers ──────────────────────────────────');
+    headers.forEach((k, v) {
+      final display = v.length > 20 ? '${v.substring(0, 20)}...[truncated]' : v;
+      debugPrint('│ $k: $display');
+    });
+    debugPrint('├── Form Fields ────────────────────────────────');
+    request.fields.forEach((k, v) => debugPrint('│ $k = "$v"'));
+    debugPrint('└─────────────────────────────────────────────');
+
+    final streamed = await _client.send(request);
+    final response  = await http.Response.fromStream(streamed);
+
+    debugPrint('┌─────────────────────────────────────────────');
+    debugPrint('│ 📥 API RESPONSE: SEND_OTP_TO_LINE');
+    debugPrint('│ Status : ${response.statusCode}');
+    debugPrint('│ Body   : ${response.body.length > 500 ? '${response.body.substring(0, 500)}...[truncated]' : response.body}');
+    debugPrint('└─────────────────────────────────────────────');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (data['jwt'] == 0) {
+        throw ApiException(
+            data['message'] as String? ?? 'Unauthorized (jwt=0)');
+      }
+      if (data['flag'] != null && data['flag'].toString() != '1') {
+        final results = data['result'] as List<dynamic>?;
+        final msg = results != null && results.isNotEmpty
+            ? (results.first as Map<String, dynamic>)['MSG'] as String? ?? ''
+            : data['message'] as String? ?? '';
+        throw ApiException(
+            msg.isNotEmpty ? msg : 'SEND_OTP_TO_LINE failed (flag≠1)');
+      }
+      // Success — no return value needed
+    } else {
+      throw ApiException(
+          'SEND_OTP_TO_LINE HTTP error: ${response.statusCode}');
+    }
+  }
 }
 
 class ApiException implements Exception {

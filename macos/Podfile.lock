@@ -1,28 +1,41 @@
 PODS:
+  - flutter_blue_plus_darwin (0.0.2):
+    - Flutter
+    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - mobile_scanner (6.0.2):
     - FlutterMacOS
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - print_bluetooth_thermal (0.0.1):
+    - FlutterMacOS
 
 DEPENDENCIES:
+  - flutter_blue_plus_darwin (from `Flutter/ephemeral/.symlinks/plugins/flutter_blue_plus_darwin/darwin`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - mobile_scanner (from `Flutter/ephemeral/.symlinks/plugins/mobile_scanner/macos`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
+  - print_bluetooth_thermal (from `Flutter/ephemeral/.symlinks/plugins/print_bluetooth_thermal/macos`)
 
 EXTERNAL SOURCES:
+  flutter_blue_plus_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_blue_plus_darwin/darwin
   FlutterMacOS:
     :path: Flutter/ephemeral
   mobile_scanner:
     :path: Flutter/ephemeral/.symlinks/plugins/mobile_scanner/macos
   path_provider_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
+  print_bluetooth_thermal:
+    :path: Flutter/ephemeral/.symlinks/plugins/print_bluetooth_thermal/macos
 
 SPEC CHECKSUMS:
+  flutter_blue_plus_darwin: 20a08bfeaa0f7804d524858d3d8744bcc1b6dbc3
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   mobile_scanner: 0e365ed56cad24f28c0fd858ca04edefb40dfac3
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  print_bluetooth_thermal: 6b565def1b74eb2ce4359c594e579eb3ab303cb1
 
 PODFILE CHECKSUM: 7eb978b976557c8c1cd717d8185ec483fd090a82
 

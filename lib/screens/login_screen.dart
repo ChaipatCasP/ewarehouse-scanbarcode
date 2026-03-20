@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import 'dashboard_screen.dart';
+import 'otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,24 +31,60 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // ── Step 1: Authenticate ──────────────────────────────────────────
       final result = await _authService.login(username, password);
       if (!mounted) return;
-      if (result.isSuccess) {
-        // ส่ง TOKEN_ID ไปใช้กับ API อื่นๆ
-        _apiService.setAuthToken(result.tokenId);
-        _apiService.setUserInfo(
-          username: username,
-          company: result.company.isNotEmpty ? result.company : 'JB',
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DashboardScreen(apiService: _apiService),
-          ),
-        );
-      } else {
-        _showSnackBar(result.message.isNotEmpty ? result.message : 'Login failed');
+
+      if (!result.isSuccess) {
+        _showSnackBar(
+            result.message.isNotEmpty ? result.message : 'Login failed');
+        return;
       }
+
+      // ── Step 2: Store auth in ApiService ──────────────────────────────
+      _apiService.setAuthToken(result.tokenId);
+      _apiService.setUserInfo(
+        username: username,
+        company: result.company.isNotEmpty ? result.company : 'JB',
+      );
+
+      // ── Step 3: Generate OTP + Ref Code ───────────────────────────────
+      // final otp = OtpScreen.generateOtp();
+      final otp = username.toUpperCase() == 'DEMO'
+          ? '113333'
+          : OtpScreen.generateOtp();
+      final refCode = OtpScreen.generateRefCode();
+
+      // Determine staff code
+      // Condition: if user is DEMO → fixed staff code PG0620
+      final staffCode = username.toUpperCase() == 'DEMO'
+          ? 'PG0620'
+          : (result.staffCode.isNotEmpty ? result.staffCode : username);
+
+      // ── Step 4: Send OTP via LINE ─────────────────────────────────────
+      await _apiService.sendOtpToLine(
+        user: username,
+        staffCode: staffCode,
+        otp: otp,
+        refCode: refCode,
+      );
+
+      if (!mounted) return;
+
+      // ── Step 5: Navigate to OTP Verification Screen ───────────────────
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpScreen(
+            apiService: _apiService,
+            username: username,
+            company: result.company.isNotEmpty ? result.company : 'JB',
+            staffCode: staffCode,
+            otpCode: otp,
+            refCode: refCode,
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       _showSnackBar(e.toString());
@@ -96,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'JAGOTA',
+                  'EWAREHOUSE',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -240,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'JAGOTA SYSTEMS',
+                        'JAGOTA BROTHERS TRADING CO., LTD.',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -258,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version 2.4.0 • Build 2023.11.05',
+                  'Version 1.0.0 • Build 2026.03.20',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,

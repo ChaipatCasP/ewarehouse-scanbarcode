@@ -87,6 +87,7 @@ class UserLoginResult {
   final String positionCode;
   final String positionName;
   final String tokenId;
+  final String staffCode; // STAFF_CODE from API (may be empty)
 
   UserLoginResult({
     required this.flag,
@@ -95,6 +96,7 @@ class UserLoginResult {
     required this.positionCode,
     required this.positionName,
     required this.tokenId,
+    this.staffCode = '',
   });
 
   bool get isSuccess => flag == '1';
@@ -107,6 +109,7 @@ class UserLoginResult {
       positionCode: json['POSITION_CODE'] as String? ?? '',
       positionName: json['POSITION_NAME'] as String? ?? '',
       tokenId: json['TOKEN_ID'] as String? ?? '',
+      staffCode: json['STAFF_CODE'] as String? ?? '',
     );
   }
 }
