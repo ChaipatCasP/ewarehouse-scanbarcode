@@ -245,6 +245,17 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     }
   }
 
+  /// ล้างข้อมูลในทุกช่อง input
+  void _clearAllFields() {
+    setState(() {
+      _barcodeController.clear();
+      _weightController.clear();
+      _boxController.clear();
+      _packDate = null;
+      _expDate = null;
+    });
+  }
+
   Future<void> _handleReprint() async {
     final boxNumber = _boxController.text.trim();
     if (boxNumber.isEmpty) {
@@ -676,6 +687,24 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton.icon(
+                                onPressed: _clearAllFields,
+                                icon: const Icon(
+                                    Icons.delete_sweep_outlined, size: 16),
+                                label: const Text('Clear'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red.shade400,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  textStyle: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                               ),
                             ],
@@ -1209,6 +1238,24 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _clearAllFields,
+                      icon: const Icon(
+                          Icons.delete_sweep_outlined, size: 15),
+                      label: const Text('Clear'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red.shade400,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        textStyle: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600),
+                        minimumSize: Size.zero,
+                        tapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
                   ],
